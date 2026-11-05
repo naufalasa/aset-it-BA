@@ -1,805 +1,563 @@
 <!DOCTYPE html>
-<html lang="id" class="dark">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Pengelolaan Aset IT </title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#eff6ff',
-                            100: '#dbeafe',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                            900: '#1e3a8a',
-                        },
-                        darkbg: '#0f172a',
-                        darkcard: '#1e293b',
-                        darkborder: '#334155'
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js CDN -->
+    <title>Sistem Pengelolaan Aset IT</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- SheetJS (XLSX) CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- JsBarcode CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
-    <!-- QRCode.js CDN -->
+    <!-- SheetJS untuk Ekspor & Import Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.min.js"></script>
+    <!-- JsBarcode untuk Barcode -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <!-- QRCode.js untuk QR Code -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <!-- Google Font Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
-
-        @media print {
-            body * { visibility: hidden; }
-            #printableLabel, #printableLabel * { visibility: visible; }
-            #printableLabel { position: absolute; left: 0; top: 0; width: 100%; }
-        }
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card-custom { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .bg-gradient-primary { background: linear-gradient(45deg, #0d6efd, #0dcaf0); color: white; }
+        .table-responsive { border-radius: 8px; overflow: hidden; }
+        .barcode-container { background: #fff; padding: 15px; border: 1px dashed #ccc; text-align: center; }
     </style>
 </head>
-<body class="bg-darkbg text-slate-100 min-h-screen flex flex-col antialiased">
+<body>
 
-    <!-- Header Navigation -->
-    <header class="bg-darkcard border-b border-darkborder sticky top-0 z-30 shadow-md">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <!-- Brand / Logo -->
-                <div class="flex items-center space-x-3">
-                    <div class="bg-brand-600 p-2.5 rounded-xl shadow-lg shadow-brand-500/20 text-white">
-                        <i class="fa-solid fa-server text-xl"></i>
-                    </div>
-                    <div>
-                        <span class="font-bold text-lg tracking-wide bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">ASSET BA Hub</span>
-                        <span class="text-xs block text-slate-400">Pengelolaan Aset IT</span>
+    <!-- Navbar Header -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+                <i class="bi bi-laptop-fill text-primary fs-3"></i>
+                <span class="fw-bold">IT Asset Management</span>
+            </a>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalImport">
+                    <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i> Import Excel
+                </button>
+                <button class="btn btn-success btn-sm" onclick="exportToExcel()">
+                    <i class="bi bi-file-earmark-excel-fill me-1"></i> Ekspor Excel
+                </button>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalTambah">
+                    <i class="bi bi-plus-circle me-1"></i> Tambah Aset
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid px-4">
+        <!-- Dashboard Stat Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card card-custom p-3 bg-gradient-primary">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0 text-white-50">Total Aset</h6>
+                            <h2 class="mb-0 fw-bold" id="totalAsetCount">0</h2>
+                        </div>
+                        <i class="bi bi-box-seam fs-1 opacity-50"></i>
                     </div>
                 </div>
-
-                <!-- Action Buttons -->
-                <div class="flex items-center space-x-3">
-                    <button onclick="exportToExcel()" class="px-3.5 py-2 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white text-sm font-medium rounded-lg border border-emerald-500/30 transition flex items-center gap-2">
-                        <i class="fa-solid fa-file-excel text-base"></i>
-                        <span class="hidden sm:inline">Ekspor Excel (.xlsx)</span>
-                    </button>
-                    <button onclick="openModal()" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold rounded-lg shadow-lg shadow-brand-600/30 transition flex items-center gap-2">
-                        <i class="fa-solid fa-plus"></i>
-                        <span>Tambah Aset</span>
-                    </button>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-custom p-3 border-start border-success border-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0 text-muted">Aset Aktif</h6>
+                            <h2 class="mb-0 fw-bold text-success" id="aktifCount">0</h2>
+                        </div>
+                        <i class="bi bi-check-circle fs-1 text-success opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-custom p-3 border-start border-warning border-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0 text-muted">Perbaikan / Perawatan</h6>
+                            <h2 class="mb-0 fw-bold text-warning" id="perbaikanCount">0</h2>
+                        </div>
+                        <i class="bi bi-tools fs-1 text-warning opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-custom p-3 border-start border-danger border-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0 text-muted">Total Nilai Saat Ini</h6>
+                            <h4 class="mb-0 fw-bold text-danger" id="totalNilaiAset">Rp 0</h4>
+                        </div>
+                        <i class="bi bi-currency-dollar fs-1 text-danger opacity-50"></i>
+                    </div>
                 </div>
             </div>
         </div>
-    </header>
 
-    <!-- Main Content Container -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-
-        <!-- Notification Banner Placeholder -->
-        <div id="toast" class="hidden fixed bottom-5 right-5 z-50 bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 transition-all duration-300">
-            <i class="fa-solid fa-circle-check text-xl"></i>
-            <span id="toast-message" class="text-sm font-medium">Notifikasi berhasil disimpan!</span>
+        <!-- Filter & Search Section -->
+        <div class="card card-custom mb-4 p-3">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                        <input type="text" id="searchInput" class="form-control" placeholder="Cari Nama Aset, Serial Number, Pengguna, atau Kode..." onkeyup="filterData()">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select id="filterKategori" class="form-select" onchange="filterData()">
+                        <option value="">Semua Kategori</option>
+                        <option value="Laptop">Laptop</option>
+                        <option value="PC Desktop">PC Desktop</option>
+                        <option value="Monitor">Monitor</option>
+                        <option value="Printer">Printer</option>
+                        <option value="Network">Network (Router/Switch)</option>
+                        <option value="Lainnya">Lainnya</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select id="filterStatus" class="form-select" onchange="filterData()">
+                        <option value="">Semua Status</option>
+                        <option value="Digunakan">Digunakan</option>
+                        <option value="Tersedia">Tersedia (Gudang)</option>
+                        <option value="Perbaikan">Dalam Perbaikan</option>
+                        <option value="Rusak">Rusak Total</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
-        <!-- Metric Summary Cards -->
-        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <!-- Total Assets -->
-            <div class="bg-darkcard border border-darkborder rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:border-slate-600 transition">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Aset</p>
-                        <h3 id="stat-total" class="text-2xl font-bold text-white mt-1">0</h3>
-                    </div>
-                    <div class="p-3 bg-blue-500/10 text-blue-400 rounded-xl">
-                        <i class="fa-solid fa-boxes-stacked text-2xl"></i>
-                    </div>
-                </div>
-                <div class="mt-4 flex items-center text-xs text-slate-400">
-                    <span id="stat-total-value" class="text-slate-200 font-semibold">Rp 0</span>
-                    <span class="ml-1">est. total nilai</span>
-                </div>
-            </div>
-
-            <!-- Active Assets -->
-            <div class="bg-darkcard border border-darkborder rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:border-slate-600 transition">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Aset Aktif</p>
-                        <h3 id="stat-active" class="text-2xl font-bold text-emerald-400 mt-1">0</h3>
-                    </div>
-                    <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl">
-                        <i class="fa-solid fa-circle-check text-2xl"></i>
-                    </div>
-                </div>
-                <div class="mt-4 flex items-center text-xs text-emerald-400">
-                    <i class="fa-solid fa-chart-line mr-1"></i>
-                    <span id="stat-active-pct">0%</span>
-                    <span class="text-slate-400 ml-1">dari total perangkat</span>
-                </div>
-            </div>
-
-            <!-- Maintenance Assets -->
-            <div class="bg-darkcard border border-darkborder rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:border-slate-600 transition">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Pemeliharaan</p>
-                        <h3 id="stat-maintenance" class="text-2xl font-bold text-amber-400 mt-1">0</h3>
-                    </div>
-                    <div class="p-3 bg-amber-500/10 text-amber-400 rounded-xl">
-                        <i class="fa-solid fa-wrench text-2xl"></i>
-                    </div>
-                </div>
-                <div class="mt-4 flex items-center text-xs text-amber-400">
-                    <i class="fa-solid fa-triangle-exclamation mr-1"></i>
-                    <span>Perlu Perhatian</span>
-                </div>
-            </div>
-
-            <!-- Retired Assets -->
-            <div class="bg-darkcard border border-darkborder rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:border-slate-600 transition">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Pensiun / Afkir</p>
-                        <h3 id="stat-retired" class="text-2xl font-bold text-rose-400 mt-1">0</h3>
-                    </div>
-                    <div class="p-3 bg-rose-500/10 text-rose-400 rounded-xl">
-                        <i class="fa-solid fa-box-archive text-2xl"></i>
-                    </div>
-                </div>
-                <div class="mt-4 flex items-center text-xs text-slate-400">
-                    <span class="text-rose-400 font-semibold" id="stat-retired-value">Rp 0</span>
-                    <span class="ml-1">nilai sisa</span>
-                </div>
-            </div>
-        </section>
-
-        <!-- Visual Analytics Section -->
-        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Distribution Chart -->
-            <div class="bg-darkcard border border-darkborder rounded-2xl p-6 shadow-sm flex flex-col justify-between">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-slate-200 flex items-center gap-2">
-                        <i class="fa-solid fa-chart-pie text-brand-500"></i>
-                        Distribusi Status Aset
-                    </h3>
-                </div>
-                <div class="relative h-64 w-full flex items-center justify-center">
-                    <canvas id="statusChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Asset Valuation by Category Chart -->
-            <div class="bg-darkcard border border-darkborder rounded-2xl p-6 shadow-sm flex flex-col justify-between">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-slate-200 flex items-center gap-2">
-                        <i class="fa-solid fa-chart-bar text-brand-500"></i>
-                        Estimasi Nilai Buku per Kategori
-                    </h3>
-                </div>
-                <div class="relative h-64 w-full flex items-center justify-center">
-                    <canvas id="categoryChart"></canvas>
-                </div>
-            </div>
-        </section>
-
-        <!-- Directory & Filter Section -->
-        <section class="bg-darkcard border border-darkborder rounded-2xl shadow-sm overflow-hidden">
-            <!-- Filter Controls -->
-            <div class="p-5 border-b border-darkborder flex flex-col md:flex-row gap-4 items-center justify-between">
-                <!-- Search Box -->
-                <div class="relative w-full md:w-96">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                    <input type="text" id="searchInput" oninput="applyFilters()" placeholder="Cari Kode, Nama, S/N, atau User Pengguna..." 
-                           class="w-full bg-slate-900/60 border border-darkborder rounded-xl pl-10 pr-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500 placeholder-slate-500">
-                </div>
-
-                <!-- Filter Dropdowns -->
-                <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                    <!-- Category Filter -->
-                    <select id="filterCategory" onchange="applyFilters()" class="bg-slate-900/60 border border-darkborder rounded-xl px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-brand-500">
-                        <option value="ALL">Semua Kategori</option>
-                        <option value="Laptop">Laptop / PC</option>
-                        <option value="Server">Server & Storage</option>
-                        <option value="Network">Perangkat Jaringan</option>
-                        <option value="Mobile">Mobile & Tablet</option>
-                        <option value="Monitor">Monitor & Display</option>
-                    </select>
-
-                    <!-- Status Filter -->
-                    <select id="filterStatus" onchange="applyFilters()" class="bg-slate-900/60 border border-darkborder rounded-xl px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-brand-500">
-                        <option value="ALL">Semua Status</option>
-                        <option value="Aktif">Aktif</option>
-                        <option value="Pemeliharaan">Pemeliharaan</option>
-                        <option value="Pensiun">Pensiun</option>
-                    </select>
-
-                    <button onclick="resetFilters()" class="px-3 py-2 text-slate-400 hover:text-white text-sm transition" title="Reset Filter">
-                        <i class="fa-solid fa-rotate-right"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Asset Directory Table -->
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm text-slate-300">
-                    <thead class="bg-slate-900/50 text-slate-400 uppercase text-xs font-semibold tracking-wider border-b border-darkborder">
+        <!-- Main Data Table -->
+        <div class="card card-custom p-3 mb-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="assetTable">
+                    <thead class="table-light">
                         <tr>
-                            <th class="px-6 py-4">Kode & S/N</th>
-                            <th class="px-6 py-4">Nama Perangkat</th>
-                            <th class="px-6 py-4">Kategori</th>
-                            <th class="px-6 py-4">Pengguna / User</th>
-                            <th class="px-6 py-4">Nilai Buku (Est.)</th>
-                            <th class="px-6 py-4">Status</th>
-                            <th class="px-6 py-4 text-right">Aksi</th>
+                            <th>Kode Aset</th>
+                            <th>Nama Barang</th>
+                            <th>Kategori</th>
+                            <th>S/N (Serial Number)</th>
+                            <th>Pengguna (User)</th>
+                            <th>Status</th>
+                            <th>Nilai Depresiasi</th>
+                            <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody id="assetTableBody" class="divide-y divide-darkborder/50">
-                        <!-- Rows rendered via JavaScript -->
+                    <tbody id="tableBody">
+                        <!-- Data dimasukkan via JS -->
                     </tbody>
                 </table>
             </div>
-
-            <!-- Table Footer Stats -->
-            <div class="p-4 bg-slate-900/30 border-t border-darkborder flex items-center justify-between text-xs text-slate-400">
-                <div>
-                    Menampilkan <span id="showingCount" class="text-slate-200 font-semibold">0</span> dari <span id="totalCount" class="text-slate-200 font-semibold">0</span> aset IT
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- Modal Form (Add / Edit Asset) -->
-    <div id="assetModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="bg-darkcard border border-darkborder rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden transform transition-all">
-            <!-- Modal Header -->
-            <div class="px-6 py-4 border-b border-darkborder flex justify-between items-center bg-slate-900/40">
-                <h3 id="modalTitle" class="font-bold text-lg text-white">Tambah Aset Baru</h3>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-white transition">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
-            </div>
-
-            <!-- Modal Form Body -->
-            <form id="assetForm" onsubmit="saveAsset(event)" class="p-6 space-y-4">
-                <input type="hidden" id="assetId">
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <!-- Asset Code -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Kode Aset *</label>
-                        <input type="text" id="assetCode" required placeholder="misal: AST-2026-001" 
-                               class="w-full bg-slate-900 border border-darkborder rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500">
-                    </div>
-
-                    <!-- Serial Number -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Serial Number (S/N) *</label>
-                        <input type="text" id="assetSerial" required placeholder="misal: SN-8839210-X" 
-                               class="w-full bg-slate-900 border border-darkborder rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <!-- Asset Name -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Nama Perangkat *</label>
-                        <input type="text" id="assetName" required placeholder="misal: MacBook Pro M2" 
-                               class="w-full bg-slate-900 border border-darkborder rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500">
-                    </div>
-
-                    <!-- Category -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Kategori *</label>
-                        <select id="assetCategory" required class="w-full bg-slate-900 border border-darkborder rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500">
-                            <option value="Laptop">Laptop / PC</option>
-                            <option value="Server">Server & Storage</option>
-                            <option value="Network">Perangkat Jaringan</option>
-                            <option value="Mobile">Mobile & Tablet</option>
-                            <option value="Monitor">Monitor & Display</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <!-- User / Assignee -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Nama Pengguna (User)</label>
-                        <input type="text" id="assetUser" placeholder="misal: Budi Santoso" 
-                               class="w-full bg-slate-900 border border-darkborder rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500">
-                    </div>
-
-                    <!-- Department -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Departemen</label>
-                        <input type="text" id="assetDept" placeholder="misal: Tech / Engineering" 
-                               class="w-full bg-slate-900 border border-darkborder rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <!-- Purchase Price -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Harga Beli (Rp) *</label>
-                        <input type="number" id="assetPrice" min="0" required placeholder="0" 
-                               class="w-full bg-slate-900 border border-darkborder rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500">
-                    </div>
-
-                    <!-- Purchase Date -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Tanggal Beli *</label>
-                        <input type="date" id="assetDate" required 
-                               class="w-full bg-slate-900 border border-darkborder rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500">
-                    </div>
-
-                    <!-- Status -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Status Aset *</label>
-                        <select id="assetStatus" required class="w-full bg-slate-900 border border-darkborder rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500">
-                            <option value="Aktif">Aktif</option>
-                            <option value="Pemeliharaan">Pemeliharaan</option>
-                            <option value="Pensiun">Pensiun</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Modal Footer Actions -->
-                <div class="pt-4 border-t border-darkborder flex justify-end gap-3">
-                    <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-xl transition">
-                        Batal
-                    </button>
-                    <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold rounded-xl shadow-lg transition">
-                        Simpan Aset
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
 
-    <!-- Modal Barcode & Label Printable -->
-    <div id="barcodeModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="bg-darkcard border border-darkborder rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
-            <div class="px-6 py-4 border-b border-darkborder flex justify-between items-center bg-slate-900/40">
-                <h3 class="font-bold text-base text-white flex items-center gap-2">
-                    <i class="fa-solid fa-barcode text-brand-500"></i> Label Barcode & QR Code
-                </h3>
-                <button onclick="closeBarcodeModal()" class="text-slate-400 hover:text-white transition">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
+    <!-- Modal Tambah / Edit Aset -->
+    <div class="modal fade" id="modalTambah" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="modalTitle">Tambah Aset Baru</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formAset" onsubmit="saveAsset(event)">
+                    <div class="modal-body">
+                        <input type="hidden" id="assetId">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nama Barang / Aset</label>
+                                <input type="text" id="name" class="form-control" required placeholder="Contoh: ThinkPad X1 Carbon">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Kategori</label>
+                                <select id="category" class="form-select" required>
+                                    <option value="Laptop">Laptop</option>
+                                    <option value="PC Desktop">PC Desktop</option>
+                                    <option value="Monitor">Monitor</option>
+                                    <option value="Printer">Printer</option>
+                                    <option value="Network">Network</option>
+                                    <option value="Lainnya">Lainnya</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Serial Number (S/N)</label>
+                                <input type="text" id="serialNumber" class="form-control" required placeholder="Contoh: SN-99812739">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Nama Pengguna (User)</label>
+                                <input type="text" id="user" class="form-control" placeholder="Nama Karyawan / IT Gudang">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Status</label>
+                                <select id="status" class="form-select" required>
+                                    <option value="Digunakan">Digunakan</option>
+                                    <option value="Tersedia">Tersedia (Gudang)</option>
+                                    <option value="Perbaikan">Dalam Perbaikan</option>
+                                    <option value="Rusak">Rusak Total</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Kondisi</label>
+                                <select id="condition" class="form-select" required>
+                                    <option value="Baik">Baik</option>
+                                    <option value="Normal">Normal</option>
+                                    <option value="Perlu Perbaikan">Perlu Perbaikan</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Harga Beli (Rp)</label>
+                                <input type="number" id="price" class="form-control" required placeholder="15000000">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tanggal Pembelian</label>
+                                <input type="date" id="buyDate" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Masa Garansi / Umur Aset (Tahun)</label>
+                                <input type="number" id="usefulLife" class="form-control" value="4" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Simpan Data</button>
+                    </div>
+                </form>
             </div>
+        </div>
+    </div>
 
-            <!-- Printable Label Area -->
-            <div class="p-6 bg-slate-950 flex flex-col items-center justify-center" id="printableLabel">
-                <div class="bg-white text-slate-900 p-5 rounded-xl border-2 border-slate-300 w-full text-center space-y-3">
-                    <div class="border-b border-slate-200 pb-2">
-                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500 block">Property of IT Dept</span>
-                        <h4 id="labelAssetName" class="font-bold text-base text-slate-900 leading-tight">MacBook Pro M3</h4>
-                        <p id="labelAssetUser" class="text-xs text-slate-600 font-medium">User: Rian Pratama</p>
+    <!-- Modal Import Excel -->
+    <div class="modal fade" id="modalImport" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-spreadsheet text-success me-2"></i>Import Data Aset via Excel</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">Pilih file Excel (.xlsx / .xls) untuk mengunggah banyak data aset sekaligus ke dalam sistem.</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Pilih File Excel:</label>
+                        <input type="file" id="excelFileInput" class="form-control" accept=".xlsx, .xls, .csv">
                     </div>
-
-                    <!-- Barcode Canvas/SVG -->
-                    <div class="flex flex-col items-center justify-center">
-                        <svg id="barcodeCanvas" class="max-w-full"></svg>
+                    <div class="alert alert-info p-2 small">
+                        <i class="bi bi-info-circle me-1"></i> Belum punya format datanya? 
+                        <a href="#" onclick="downloadTemplate()" class="fw-bold text-decoration-none">Download Format Template Excel</a>
                     </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-success" onclick="processExcelImport()"><i class="bi bi-upload me-1"></i> Proses Import</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                    <!-- QR Code Canvas -->
-                    <div class="flex items-center justify-center py-1">
+    <!-- Modal Cetak Barcode & QR Code -->
+    <div class="modal fade" id="modalBarcode" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Label Barcode & QR Code Aset</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center" id="printableArea">
+                    <h5 id="barcodeAssetName" class="fw-bold mb-1"></h5>
+                    <p id="barcodeAssetUser" class="text-muted mb-3 small"></p>
+                    <div class="barcode-container mb-3">
+                        <svg id="barcodeCanvas"></svg>
+                    </div>
+                    <div class="d-flex justify-content-center mb-2">
                         <div id="qrcodeCanvas"></div>
                     </div>
-
-                    <div class="text-xs font-mono font-bold text-slate-800 pt-1 border-t border-slate-200 flex justify-between">
-                        <span>SN: <span id="labelSerial">SN-99812</span></span>
-                        <span id="labelCode">AST-2024-001</span>
-                    </div>
+                    <small class="text-muted" id="barcodeAssetCode"></small>
                 </div>
-            </div>
-
-            <div class="p-4 border-t border-darkborder bg-slate-900/40 flex justify-end gap-3">
-                <button onclick="closeBarcodeModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-xl transition">
-                    Tutup
-                </button>
-                <button onclick="window.print()" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold rounded-xl shadow-lg transition flex items-center gap-2">
-                    <i class="fa-solid fa-print"></i>
-                    <span>Cetak Label</span>
-                </button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <button type="button" class="btn btn-primary" onclick="printBarcode()"><i class="bi bi-printer me-1"></i> Cetak Label</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Application Script Logic -->
+    <!-- JS & Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Initial Mock Data Store with Serial Number
-        let assets = [
-            { id: 1, code: "AST-2024-001", serial: "SN-MBP-99218", name: "MacBook Pro M3 Pro 18GB", category: "Laptop", user: "Rian Pratama", dept: "Engineering", price: 32000000, date: "2024-01-15", status: "Aktif" },
-            { id: 2, code: "AST-2023-014", serial: "SN-DELL-88210", name: "Dell PowerEdge R750 Server", category: "Server", user: "Infrastruktur IT", dept: "IT Ops", price: 85000000, date: "2023-05-20", status: "Aktif" },
-            { id: 3, code: "AST-2022-008", serial: "SN-CSCO-11002", name: "Cisco Catalyst Switch 48-Port", category: "Network", user: "Jaringan Utama", dept: "IT Ops", price: 24000000, date: "2022-08-10", status: "Pemeliharaan" },
-            { id: 4, code: "AST-2023-045", serial: "SN-MON-33411", name: "Dell UltraSharp 27 Inch 4K", category: "Monitor", user: "Siti Rahma", dept: "UI/UX Design", price: 7500000, date: "2023-11-02", status: "Aktif" },
-            { id: 5, code: "AST-2021-003", serial: "SN-THINK-44012", name: "ThinkPad X1 Carbon Gen 8", category: "Laptop", user: "Eko Wijaya", dept: "Marketing", price: 21000000, date: "2021-03-12", status: "Pensiun" },
-            { id: 6, code: "AST-2024-019", serial: "SN-IPAD-77621", name: "iPad Pro 11 M2 Wi-Fi", category: "Mobile", user: "Dina Maria", dept: "Product", price: 14500000, date: "2024-02-01", status: "Aktif" }
-        ];
+        // Data Aset diinisialisasi KOSONG BERSIH
+        let initialAssets = [];
+        let assets = JSON.parse(localStorage.getItem('it_assets_data')) || initialAssets;
 
-        // Global Chart Instances
-        let statusChartInstance = null;
-        let categoryChartInstance = null;
-
-        // Utility: Format Currency (IDR)
-        function formatIDR(amount) {
-            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount);
+        function saveToLocalStorage() {
+            localStorage.setItem('it_assets_data', JSON.stringify(assets));
+            renderTable(assets);
+            updateDashboard();
         }
 
-        // Depreciation Calculation (Straight Line)
-        function calculateCurrentBookValue(price, purchaseDateStr) {
-            const purchaseDate = new Date(purchaseDateStr);
-            const now = new Date();
-            const ageInYears = (now - purchaseDate) / (1000 * 60 * 60 * 24 * 365.25);
+        function calculateDepreciation(price, buyDate, usefulLifeYears) {
+            const buyYear = new Date(buyDate).getFullYear();
+            const currentYear = new Date().getFullYear();
+            const age = Math.max(0, currentYear - buyYear);
             
-            const lifespan = 4;
-            const residualRate = 0.1;
-            const minVal = price * residualRate;
-
-            if (ageInYears >= lifespan) return minVal;
-            
-            const annualDepreciation = (price - minVal) / lifespan;
-            const currentValue = price - (annualDepreciation * ageInYears);
-            return Math.max(currentValue, minVal);
+            if (age >= usefulLifeYears) return 0;
+            const annualDepreciation = price / usefulLifeYears;
+            const currentValue = price - (annualDepreciation * age);
+            return Math.max(0, currentValue);
         }
 
-        // Render UI Table & Statistics
-        function renderUI() {
-            applyFilters();
-            updateStatistics();
-            updateCharts();
+        function formatRupiah(number) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number);
         }
 
-        // Apply Search and Filters
-        function applyFilters() {
-            const searchValue = document.getElementById('searchInput').value.toLowerCase();
-            const selectedCategory = document.getElementById('filterCategory').value;
-            const selectedStatus = document.getElementById('filterStatus').value;
-
-            const filtered = assets.filter(item => {
-                const matchesSearch = item.code.toLowerCase().includes(searchValue) ||
-                                      (item.serial && item.serial.toLowerCase().includes(searchValue)) ||
-                                      item.name.toLowerCase().includes(searchValue) ||
-                                      item.user.toLowerCase().includes(searchValue) ||
-                                      item.dept.toLowerCase().includes(searchValue);
-                
-                const matchesCategory = selectedCategory === 'ALL' || item.category === selectedCategory;
-                const matchesStatus = selectedStatus === 'ALL' || item.status === selectedStatus;
-
-                return matchesSearch && matchesCategory && matchesStatus;
-            });
-
-            renderTable(filtered);
-            document.getElementById('showingCount').innerText = filtered.length;
-            document.getElementById('totalCount').innerText = assets.length;
-        }
-
-        // Reset Filter Control
-        function resetFilters() {
-            document.getElementById('searchInput').value = '';
-            document.getElementById('filterCategory').value = 'ALL';
-            document.getElementById('filterStatus').value = 'ALL';
-            applyFilters();
-        }
-
-        // Render Table Rows
         function renderTable(data) {
-            const tbody = document.getElementById('assetTableBody');
+            const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
 
-            if (data.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="7" class="px-6 py-8 text-center text-slate-500">
-                            <i class="fa-solid fa-folder-open text-3xl mb-2 block"></i>
-                            Tidak ada data aset IT yang cocok.
-                        </td>
-                    </tr>
-                `;
+            if(data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">Belum ada data aset. Klik <b>Tambah Aset</b> atau <b>Import Excel</b> untuk memasukkan data.</td></tr>`;
                 return;
             }
 
-            data.forEach(item => {
-                const currentVal = calculateCurrentBookValue(item.price, item.date);
-
-                let statusClass = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
-                if (item.status === 'Pemeliharaan') statusClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
-                if (item.status === 'Pensiun') statusClass = "bg-rose-500/10 text-rose-400 border-rose-500/20";
+            data.forEach(asset => {
+                const currentValue = calculateDepreciation(asset.price, asset.buyDate, asset.usefulLife);
+                const badgeStatus = asset.status === 'Digunakan' ? 'bg-success' : 
+                                   asset.status === 'Tersedia' ? 'bg-info' : 
+                                   asset.status === 'Perbaikan' ? 'bg-warning text-dark' : 'bg-danger';
 
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-800/40 transition border-b border-darkborder/50";
                 tr.innerHTML = `
-                    <td class="px-6 py-4 font-mono text-xs font-semibold text-brand-500">
-                        ${item.code}
-                        <span class="block text-[11px] text-slate-400 font-normal">S/N: ${item.serial || '-'}</span>
-                    </td>
-                    <td class="px-6 py-4 font-medium text-white">
-                        ${item.name}
-                        <span class="block text-xs text-slate-400 mt-0.5">Beli: ${item.date}</span>
-                    </td>
-                    <td class="px-6 py-4">
-                        <span class="px-2.5 py-1 bg-slate-800 text-slate-300 text-xs rounded-lg border border-darkborder">
-                            ${item.category}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4">
-                        <div class="text-xs font-medium text-slate-200">${item.user || '-'}</div>
-                        <div class="text-xs text-slate-400">${item.dept || '-'}</div>
-                    </td>
-                    <td class="px-6 py-4 font-medium text-slate-200">
-                        ${formatIDR(currentVal)}
-                        <span class="block text-xs text-slate-400">Awal: ${formatIDR(item.price)}</span>
-                    </td>
-                    <td class="px-6 py-4">
-                        <span class="px-2.5 py-1 text-xs rounded-full border ${statusClass}">
-                            ${item.status}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 text-right space-x-1.5">
-                        <button onclick="showBarcodeModal(${item.id})" class="p-1.5 text-slate-400 hover:text-emerald-400 transition" title="Cetak Barcode / QR Code">
-                            <i class="fa-solid fa-barcode"></i>
-                        </button>
-                        <button onclick="editAsset(${item.id})" class="p-1.5 text-slate-400 hover:text-blue-400 transition" title="Edit">
-                            <i class="fa-solid fa-pen-to-square"></i>
-                        </button>
-                        <button onclick="deleteAsset(${item.id})" class="p-1.5 text-slate-400 hover:text-rose-400 transition" title="Hapus">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
+                    <td class="fw-bold text-primary">${asset.code}</td>
+                    <td><div class="fw-bold">${asset.name}</div><small class="text-muted">Kondisi: ${asset.condition}</small></td>
+                    <td><span class="badge bg-light text-dark border">${asset.category}</span></td>
+                    <td><code>${asset.serialNumber || '-'}</code></td>
+                    <td>${asset.user || '-'}</td>
+                    <td><span class="badge ${badgeStatus}">${asset.status}</span></td>
+                    <td>${formatRupiah(currentValue)}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-dark me-1" onclick="showBarcodeModal('${asset.id}')" title="Label Barcode"><i class="bi bi-qr-code"></i></button>
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editAsset('${asset.id}')" title="Edit"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteAsset('${asset.id}')" title="Hapus"><i class="bi bi-trash"></i></button>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        // Update Statistics Metrics Cards
-        function updateStatistics() {
-            const total = assets.length;
-            const active = assets.filter(a => a.status === 'Aktif').length;
-            const maintenance = assets.filter(a => a.status === 'Pemeliharaan').length;
-            const retired = assets.filter(a => a.status === 'Pensiun').length;
+        function updateDashboard() {
+            document.getElementById('totalAsetCount').innerText = assets.length;
+            document.getElementById('aktifCount').innerText = assets.filter(a => a.status === 'Digunakan').length;
+            document.getElementById('perbaikanCount').innerText = assets.filter(a => a.status === 'Perbaikan').length;
 
-            const totalVal = assets.reduce((sum, a) => sum + calculateCurrentBookValue(a.price, a.date), 0);
-            const retiredVal = assets.filter(a => a.status === 'Pensiun').reduce((sum, a) => sum + calculateCurrentBookValue(a.price, a.date), 0);
+            const totalCurrentValue = assets.reduce((sum, asset) => {
+                return sum + calculateDepreciation(asset.price, asset.buyDate, asset.usefulLife);
+            }, 0);
 
-            document.getElementById('stat-total').innerText = total;
-            document.getElementById('stat-total-value').innerText = formatIDR(totalVal);
-            document.getElementById('stat-active').innerText = active;
-            document.getElementById('stat-active-pct').innerText = total ? `${Math.round((active/total)*100)}%` : '0%';
-            document.getElementById('stat-maintenance').innerText = maintenance;
-            document.getElementById('stat-retired').innerText = retired;
-            document.getElementById('stat-retired-value').innerText = formatIDR(retiredVal);
-        }
-
-        // Chart Visualizations
-        function updateCharts() {
-            const statusCounts = {
-                'Aktif': assets.filter(a => a.status === 'Aktif').length,
-                'Pemeliharaan': assets.filter(a => a.status === 'Pemeliharaan').length,
-                'Pensiun': assets.filter(a => a.status === 'Pensiun').length
-            };
-
-            const ctxStatus = document.getElementById('statusChart').getContext('2d');
-            if (statusChartInstance) statusChartInstance.destroy();
-            
-            statusChartInstance = new Chart(ctxStatus, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Aktif', 'Pemeliharaan', 'Pensiun'],
-                    datasets: [{
-                        data: [statusCounts['Aktif'], statusCounts['Pemeliharaan'], statusCounts['Pensiun']],
-                        backgroundColor: ['#10b981', '#f59e0b', '#f43f5e'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'bottom', labels: { color: '#94a3b8' } }
-                    }
-                }
-            });
-
-            const categories = ['Laptop', 'Server', 'Network', 'Mobile', 'Monitor'];
-            const categoryValues = categories.map(cat => {
-                return assets
-                    .filter(a => a.category === cat)
-                    .reduce((sum, a) => sum + calculateCurrentBookValue(a.price, a.date), 0);
-            });
-
-            const ctxCat = document.getElementById('categoryChart').getContext('2d');
-            if (categoryChartInstance) categoryChartInstance.destroy();
-
-            categoryChartInstance = new Chart(ctxCat, {
-                type: 'bar',
-                data: {
-                    labels: categories,
-                    datasets: [{
-                        label: 'Nilai Buku (Rp)',
-                        data: categoryValues,
-                        backgroundColor: '#3b82f6',
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    },
-                    scales: {
-                        x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
-                        y: { 
-                            ticks: { 
-                                color: '#94a3b8',
-                                callback: value => 'Rp ' + (value / 1000000) + ' Jt'
-                            },
-                            grid: { color: '#334155' }
-                        }
-                    }
-                }
-            });
-        }
-
-        // Modal Handlers
-        function openModal() {
-            document.getElementById('assetForm').reset();
-            document.getElementById('assetId').value = '';
-            document.getElementById('modalTitle').innerText = 'Tambah Aset Baru';
-            document.getElementById('assetCode').value = 'AST-' + new Date().getFullYear() + '-' + Math.floor(100 + Math.random() * 900);
-            document.getElementById('assetModal').classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('assetModal').classList.add('hidden');
-        }
-
-        function editAsset(id) {
-            const item = assets.find(a => a.id === id);
-            if (!item) return;
-
-            document.getElementById('assetId').value = item.id;
-            document.getElementById('assetCode').value = item.code;
-            document.getElementById('assetSerial').value = item.serial || '';
-            document.getElementById('assetName').value = item.name;
-            document.getElementById('assetCategory').value = item.category;
-            document.getElementById('assetUser').value = item.user;
-            document.getElementById('assetDept').value = item.dept;
-            document.getElementById('assetPrice').value = item.price;
-            document.getElementById('assetDate').value = item.date;
-            document.getElementById('assetStatus').value = item.status;
-
-            document.getElementById('modalTitle').innerText = 'Edit Data Aset';
-            document.getElementById('assetModal').classList.remove('hidden');
+            document.getElementById('totalNilaiAset').innerText = formatRupiah(totalCurrentValue);
         }
 
         function saveAsset(e) {
             e.preventDefault();
             const id = document.getElementById('assetId').value;
-            const code = document.getElementById('assetCode').value;
-            const serial = document.getElementById('assetSerial').value;
-            const name = document.getElementById('assetName').value;
-            const category = document.getElementById('assetCategory').value;
-            const user = document.getElementById('assetUser').value;
-            const dept = document.getElementById('assetDept').value;
-            const price = parseFloat(document.getElementById('assetPrice').value) || 0;
-            const date = document.getElementById('assetDate').value;
-            const status = document.getElementById('assetStatus').value;
+            const name = document.getElementById('name').value;
+            const category = document.getElementById('category').value;
+            const serialNumber = document.getElementById('serialNumber').value;
+            const user = document.getElementById('user').value;
+            const status = document.getElementById('status').value;
+            const condition = document.getElementById('condition').value;
+            const price = parseFloat(document.getElementById('price').value);
+            const buyDate = document.getElementById('buyDate').value;
+            const usefulLife = parseInt(document.getElementById('usefulLife').value);
 
             if (id) {
-                const index = assets.findIndex(a => a.id == id);
-                if (index !== -1) {
-                    assets[index] = { id: parseInt(id), code, serial, name, category, user, dept, price, date, status };
-                    showToast("Data aset berhasil diperbarui!");
-                }
+                const index = assets.findIndex(a => a.id === id);
+                assets[index] = { ...assets[index], name, category, serialNumber, user, status, condition, price, buyDate, usefulLife };
             } else {
-                const newId = assets.length ? Math.max(...assets.map(a => a.id)) + 1 : 1;
-                assets.push({ id: newId, code, serial, name, category, user, dept, price, date, status });
-                showToast("Aset baru berhasil ditambahkan!");
+                const newAsset = {
+                    id: Date.now().toString(),
+                    code: 'AST-' + Math.floor(100000 + Math.random() * 900000),
+                    name, category, serialNumber, user, status, condition, price, buyDate, usefulLife
+                };
+                assets.push(newAsset);
             }
 
-            closeModal();
-            renderUI();
+            saveToLocalStorage();
+            bootstrap.Modal.getInstance(document.getElementById('modalTambah')).hide();
+            document.getElementById('formAset').reset();
+        }
+
+        function editAsset(id) {
+            const asset = assets.find(a => a.id === id);
+            document.getElementById('assetId').value = asset.id;
+            document.getElementById('name').value = asset.name;
+            document.getElementById('category').value = asset.category;
+            document.getElementById('serialNumber').value = asset.serialNumber;
+            document.getElementById('user').value = asset.user;
+            document.getElementById('status').value = asset.status;
+            document.getElementById('condition').value = asset.condition;
+            document.getElementById('price').value = asset.price;
+            document.getElementById('buyDate').value = asset.buyDate;
+            document.getElementById('usefulLife').value = asset.usefulLife;
+            
+            document.getElementById('modalTitle').innerText = 'Edit Data Aset';
+            new bootstrap.Modal(document.getElementById('modalTambah')).show();
         }
 
         function deleteAsset(id) {
-            if (confirm("Apakah Anda yakin ingin menghapus data aset ini?")) {
+            if (confirm('Apakah Anda yakin ingin menghapus aset ini?')) {
                 assets = assets.filter(a => a.id !== id);
-                showToast("Data aset berhasil dihapus.");
-                renderUI();
+                saveToLocalStorage();
             }
         }
 
-        // Export Data to Excel (.XLSX Native)
+        function filterData() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const category = document.getElementById('filterKategori').value;
+            const status = document.getElementById('filterStatus').value;
+
+            const filtered = assets.filter(a => {
+                const matchSearch = a.name.toLowerCase().includes(search) || 
+                                    a.code.toLowerCase().includes(search) || 
+                                    (a.serialNumber && a.serialNumber.toLowerCase().includes(search)) ||
+                                    (a.user && a.user.toLowerCase().includes(search));
+                const matchCat = category === '' || a.category === category;
+                const matchStatus = status === '' || a.status === status;
+                return matchSearch && matchCat && matchStatus;
+            });
+
+            renderTable(filtered);
+        }
+
+        // --- FITUR IMPORT EXCEL ---
+        function processExcelImport() {
+            const fileInput = document.getElementById('excelFileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('Silakan pilih file Excel terlebih dahulu!');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonResult = XLSX.utils.sheet_to_json(worksheet);
+
+                if (jsonResult.length === 0) {
+                    alert('File Excel kosong atau format tidak sesuai!');
+                    return;
+                }
+
+                let importedCount = 0;
+                jsonResult.forEach(row => {
+                    if (row['Nama Barang']) {
+                        const newAsset = {
+                            id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                            code: row['Kode Aset'] || ('AST-' + Math.floor(100000 + Math.random() * 900000)),
+                            name: row['Nama Barang'],
+                            category: row['Kategori'] || 'Lainnya',
+                            serialNumber: row['Serial Number'] || '-',
+                            user: row['Pengguna'] || '-',
+                            status: row['Status'] || 'Tersedia',
+                            condition: row['Kondisi'] || 'Baik',
+                            price: parseFloat(row['Harga Beli']) || 0,
+                            buyDate: row['Tanggal Pembelian'] || new Date().toISOString().split('T')[0],
+                            usefulLife: parseInt(row['Masa Garansi (Thn)']) || 4
+                        };
+                        assets.push(newAsset);
+                        importedCount++;
+                    }
+                });
+
+                saveToLocalStorage();
+                bootstrap.Modal.getInstance(document.getElementById('modalImport')).hide();
+                fileInput.value = '';
+                alert(`Berhasil mengimpor ${importedCount} data aset!`);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function downloadTemplate() {
+            const templateData = [
+                {
+                    "Kode Aset": "AST-1001",
+                    "Nama Barang": "Laptop Asus ROG",
+                    "Kategori": "Laptop",
+                    "Serial Number": "SN-12345678",
+                    "Pengguna": "Budi Santoso",
+                    "Status": "Digunakan",
+                    "Kondisi": "Baik",
+                    "Harga Beli": 18000000,
+                    "Tanggal Pembelian": "2023-01-15",
+                    "Masa Garansi (Thn)": 4
+                }
+            ];
+
+            const ws = XLSX.utils.json_to_sheet(templateData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Template Aset");
+            XLSX.writeFile(wb, "Template_Import_Aset_IT.xlsx");
+        }
+
+        // --- FITUR EKSPOR EXCEL ---
         function exportToExcel() {
-            const excelData = assets.map(a => {
-                const currentBookVal = calculateCurrentBookValue(a.price, a.date);
-                return {
-                    "Kode Aset": a.code,
-                    "Serial Number (S/N)": a.serial || "-",
-                    "Nama Perangkat": a.name,
-                    "Kategori": a.category,
-                    "User / Pengguna": a.user || "-",
-                    "Departemen": a.dept || "-",
-                    "Harga Beli (IDR)": a.price,
-                    "Tanggal Pembelian": a.date,
-                    "Nilai Buku Saat Ini (IDR)": Math.round(currentBookVal),
-                    "Status": a.status
-                };
-            });
+            const exportData = assets.map(a => ({
+                'Kode Aset': a.code,
+                'Nama Barang': a.name,
+                'Kategori': a.category,
+                'Serial Number': a.serialNumber,
+                'Pengguna': a.user,
+                'Status': a.status,
+                'Kondisi': a.condition,
+                'Harga Beli': a.price,
+                'Tanggal Pembelian': a.buyDate,
+                'Nilai Sisa Saat Ini': calculateDepreciation(a.price, a.buyDate, a.usefulLife)
+            }));
 
-            const worksheet = XLSX.utils.json_to_sheet(excelData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Aset IT");
-
-            XLSX.writeFile(workbook, `Aset_IT_Export_${new Date().toISOString().slice(0,10)}.xlsx`);
-            showToast("Berhasil mengekspor data ke Excel (.xlsx)!");
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Daftar Aset IT");
+            XLSX.writeFile(wb, "Data_Aset_IT.xlsx");
         }
 
-        // Barcode & QR Code Modal Generator
+        // --- FITUR BARCODE & QR CODE ---
         function showBarcodeModal(id) {
-            const item = assets.find(a => a.id === id);
-            if (!item) return;
+            const asset = assets.find(a => a.id === id);
+            document.getElementById('barcodeAssetName').innerText = asset.name;
+            document.getElementById('barcodeAssetUser').innerText = `User: ${asset.user || '-'} | S/N: ${asset.serialNumber || '-'}`;
+            document.getElementById('barcodeAssetCode').innerText = asset.code;
 
-            document.getElementById('labelAssetName').innerText = item.name;
-            document.getElementById('labelAssetUser').innerText = `Pengguna: ${item.user || '-'}`;
-            document.getElementById('labelCode').innerText = item.code;
-            document.getElementById('labelSerial').innerText = item.serial || 'N/A';
-
-            // Generate Barcode using JsBarcode
-            JsBarcode("#barcodeCanvas", item.code, {
+            JsBarcode("#barcodeCanvas", asset.code, {
                 format: "CODE128",
-                width: 1.8,
-                height: 45,
-                displayValue: true,
-                fontSize: 12,
-                margin: 5
+                width: 2,
+                height: 50,
+                displayValue: true
             });
 
-            // Generate QR Code using QRCode.js
-            const qrContainer = document.getElementById('qrcodeCanvas');
-            qrContainer.innerHTML = '';
-            new QRCode(qrContainer, {
-                text: JSON.stringify({ code: item.code, sn: item.serial, user: item.user }),
-                width: 75,
-                height: 75
+            document.getElementById('qrcodeCanvas').innerHTML = '';
+            new QRCode(document.getElementById('qrcodeCanvas'), {
+                text: `${asset.code} | ${asset.name} | S/N: ${asset.serialNumber}`,
+                width: 90,
+                height: 90
             });
 
-            document.getElementById('barcodeModal').classList.remove('hidden');
+            new bootstrap.Modal(document.getElementById('modalBarcode')).show();
         }
 
-        function closeBarcodeModal() {
-            document.getElementById('barcodeModal').classList.add('hidden');
+        function printBarcode() {
+            const printContent = document.getElementById('printableArea').innerHTML;
+            const originalContent = document.body.innerHTML;
+            document.body.innerHTML = `<div style="text-align:center; padding: 20px;">${printContent}</div>`;
+            window.print();
+            document.body.innerHTML = originalContent;
+            location.reload();
         }
 
-        // Toast Feedback System
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-message').innerText = message;
-            toast.classList.remove('hidden');
-            setTimeout(() => {
-                toast.classList.add('hidden');
-            }, 3000);
-        }
-
-        // Window Load Handler
-        window.onload = function() {
-            renderUI();
-        };
+        // Inisialisasi awal
+        renderTable(assets);
+        updateDashboard();
     </script>
 </body>
 </html>
