@@ -8,13 +8,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- SheetJS untuk Ekspor & Import Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.min.js"></script>
-    <!-- JsBarcode untuk Barcode -->
+    <!-- JsBarcode & QRCode -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-    <!-- QRCode.js untuk QR Code -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -22,132 +19,177 @@
         .bg-gradient-primary { background: linear-gradient(45deg, #0d6efd, #0dcaf0); color: white; }
         .table-responsive { border-radius: 8px; overflow: hidden; }
         .barcode-container { background: #fff; padding: 15px; border: 1px dashed #ccc; text-align: center; }
+        .spec-badge { font-size: 0.75rem; background-color: #e9ecef; color: #495057; border-radius: 4px; padding: 2px 6px; display: inline-block; margin-top: 3px; }
+        .login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1a1e21; z-index: 9999; display: flex; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
 
-    <!-- Navbar Header -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <!-- OVERLAY LOGIN -->
+    <div id="loginOverlay" class="login-overlay">
+        <div class="card card-custom p-4 shadow-lg" style="max-width: 400px; width: 100%;">
+            <div class="text-center mb-4">
+                <i class="bi bi-laptop-fill text-primary display-4"></i>
+                <h4 class="fw-bold mt-2">IT Asset BA</h4>
+                <p class="text-muted small">Silakan login untuk mengakses sistem</p>
+            </div>
+            <form onsubmit="handleLogin(event)">
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" id="loginUsername" class="form-control" required placeholder="Masukan Username">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <input type="password" id="loginPassword" class="form-control" required placeholder="Masukan Pasword">
+                </div>
+                <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Login</button>
+            </form>
+                   </div>
+    </div>
+
+    <!-- MAIN APP CONTROLS -->
+    <div id="appContent" style="display: none;">
+        <!-- Navbar Header -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+            <div class="container-fluid px-4">
+                <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+                    <i class="bi bi-laptop-fill text-primary fs-3"></i>
+                    <span class="fw-bold">IT Asset Management</span>
+                </a>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-secondary me-2 p-2" id="userRoleBadge">Role: -</span>
+                    
+                    <!-- Fitur Khusus Admin -->
+                    <button class="btn btn-warning btn-sm admin-only" data-bs-toggle="modal" data-bs-target="#modalUsers">
+                        <i class="bi bi-people-fill me-1"></i> Kelola User
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm admin-only" onclick="clearAllData()">
+                        <i class="bi bi-trash-fill me-1"></i> Reset Data
+                    </button>
+                    <button class="btn btn-outline-success btn-sm admin-only" data-bs-toggle="modal" data-bs-target="#modalImport">
+                        <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i> Import Excel
+                    </button>
+                    <button class="btn btn-primary btn-sm admin-only" data-bs-toggle="modal" data-bs-target="#modalTambah">
+                        <i class="bi bi-plus-circle me-1"></i> Tambah Aset
+                    </button>
+
+                    <!-- Fitur Publik (User & Admin) -->
+                    <button class="btn btn-success btn-sm" onclick="exportToExcel()">
+                        <i class="bi bi-file-earmark-excel-fill me-1"></i> Ekspor Excel
+                    </button>
+                    <button class="btn btn-outline-light btn-sm ms-2" onclick="handleLogout()">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </nav>
+
         <div class="container-fluid px-4">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="#">
-                <i class="bi bi-laptop-fill text-primary fs-3"></i>
-                <span class="fw-bold">IT Asset Management</span>
-            </a>
-            <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalImport">
-                    <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i> Import Excel
-                </button>
-                <button class="btn btn-success btn-sm" onclick="exportToExcel()">
-                    <i class="bi bi-file-earmark-excel-fill me-1"></i> Ekspor Excel
-                </button>
-                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalTambah">
-                    <i class="bi bi-plus-circle me-1"></i> Tambah Aset
-                </button>
-            </div>
-        </div>
-    </nav>
-
-    <div class="container-fluid px-4">
-        <!-- Dashboard Stat Cards -->
-        <div class="row g-3 mb-4">
-            <div class="col-md-3">
-                <div class="card card-custom p-3 bg-gradient-primary">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-0 text-white-50">Total Aset</h6>
-                            <h2 class="mb-0 fw-bold" id="totalAsetCount">0</h2>
+            <!-- Dashboard Stat Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="card card-custom p-3 bg-gradient-primary">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0 text-white-50">Total Aset</h6>
+                                <h2 class="mb-0 fw-bold" id="totalAsetCount">0</h2>
+                            </div>
+                            <i class="bi bi-box-seam fs-1 opacity-50"></i>
                         </div>
-                        <i class="bi bi-box-seam fs-1 opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card card-custom p-3 border-start border-success border-4">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-0 text-muted">Aset Aktif</h6>
-                            <h2 class="mb-0 fw-bold text-success" id="aktifCount">0</h2>
-                        </div>
-                        <i class="bi bi-check-circle fs-1 text-success opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card card-custom p-3 border-start border-warning border-4">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-0 text-muted">Perbaikan / Perawatan</h6>
-                            <h2 class="mb-0 fw-bold text-warning" id="perbaikanCount">0</h2>
-                        </div>
-                        <i class="bi bi-tools fs-1 text-warning opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card card-custom p-3 border-start border-danger border-4">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-0 text-muted">Total Nilai Saat Ini</h6>
-                            <h4 class="mb-0 fw-bold text-danger" id="totalNilaiAset">Rp 0</h4>
-                        </div>
-                        <i class="bi bi-currency-dollar fs-1 text-danger opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Filter & Search Section -->
-        <div class="card card-custom mb-4 p-3">
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                        <input type="text" id="searchInput" class="form-control" placeholder="Cari Nama Aset, Serial Number, Pengguna, atau Kode..." onkeyup="filterData()">
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <select id="filterKategori" class="form-select" onchange="filterData()">
-                        <option value="">Semua Kategori</option>
-                        <option value="Laptop">Laptop</option>
-                        <option value="PC Desktop">PC Desktop</option>
-                        <option value="Monitor">Monitor</option>
-                        <option value="Printer">Printer</option>
-                        <option value="Network">Network (Router/Switch)</option>
-                        <option value="Lainnya">Lainnya</option>
-                    </select>
+                    <div class="card card-custom p-3 border-start border-success border-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0 text-muted">Aset Aktif</h6>
+                                <h2 class="mb-0 fw-bold text-success" id="aktifCount">0</h2>
+                            </div>
+                            <i class="bi bi-check-circle fs-1 text-success opacity-50"></i>
+                        </div>
+                    </div>
                 </div>
                 <div class="col-md-3">
-                    <select id="filterStatus" class="form-select" onchange="filterData()">
-                        <option value="">Semua Status</option>
-                        <option value="Digunakan">Digunakan</option>
-                        <option value="Tersedia">Tersedia (Gudang)</option>
-                        <option value="Perbaikan">Dalam Perbaikan</option>
-                        <option value="Rusak">Rusak Total</option>
-                    </select>
+                    <div class="card card-custom p-3 border-start border-warning border-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0 text-muted">Perbaikan / Perawatan</h6>
+                                <h2 class="mb-0 fw-bold text-warning" id="perbaikanCount">0</h2>
+                            </div>
+                            <i class="bi bi-tools fs-1 text-warning opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card card-custom p-3 border-start border-danger border-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0 text-muted">Total Nilai Saat Ini</h6>
+                                <h4 class="mb-0 fw-bold text-danger" id="totalNilaiAset">Rp 0</h4>
+                            </div>
+                            <i class="bi bi-currency-dollar fs-1 text-danger opacity-50"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Main Data Table -->
-        <div class="card card-custom p-3 mb-4">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" id="assetTable">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Kode Aset</th>
-                            <th>Nama Barang</th>
-                            <th>Kategori</th>
-                            <th>S/N (Serial Number)</th>
-                            <th>Pengguna (User)</th>
-                            <th>Status</th>
-                            <th>Nilai Depresiasi</th>
-                            <th class="text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                        <!-- Data dimasukkan via JS -->
-                    </tbody>
-                </table>
+            <!-- Filter & Search Section -->
+            <div class="card card-custom mb-4 p-3">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                            <input type="text" id="searchInput" class="form-control" placeholder="Cari Nama, S/N, User, Specs, Kode..." onkeyup="filterData()">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select id="filterDivisi" class="form-select" onchange="filterData()">
+                            <option value="">Semua Divisi</option>
+                            <!-- List Divisi Diisi Dinamis via JS -->
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select id="filterKategori" class="form-select" onchange="filterData()">
+                            <option value="">Semua Kategori</option>
+                            <option value="Laptop">Laptop</option>
+                            <option value="PC Desktop">PC Desktop</option>
+                            <option value="Monitor">Monitor</option>
+                            <option value="Printer">Printer</option>
+                            <option value="Network">Network</option>
+                            <option value="Lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select id="filterStatus" class="form-select" onchange="filterData()">
+                            <option value="">Semua Status</option>
+                            <option value="Digunakan">Digunakan</option>
+                            <option value="Tersedia">Tersedia</option>
+                            <option value="Perbaikan">Perbaikan</option>
+                            <option value="Rusak">Rusak</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Data Table -->
+            <div class="card card-custom p-3 mb-4">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="assetTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Kode</th>
+                                <th>Nama Barang</th>
+                                <th>Pengguna & Divisi</th>
+                                <th>Spesifikasi Hardware</th>
+                                <th>S/N (Serial)</th>
+                                <th>Status</th>
+                                <th>Nilai Sisa</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -163,10 +205,12 @@
                 <form id="formAset" onsubmit="saveAsset(event)">
                     <div class="modal-body">
                         <input type="hidden" id="assetId">
-                        <div class="row g-3">
+                        
+                        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-info-circle me-1"></i> Informasi Umum & Pengguna</h6>
+                        <div class="row g-3 mb-4">
                             <div class="col-md-6">
                                 <label class="form-label">Nama Barang / Aset</label>
-                                <input type="text" id="name" class="form-control" required placeholder="Contoh: ThinkPad X1 Carbon">
+                                <input type="text" id="name" class="form-control" required placeholder="Contoh: PC Desktop Core i7">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Kategori</label>
@@ -179,14 +223,54 @@
                                     <option value="Lainnya">Lainnya</option>
                                 </select>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label class="form-label">Serial Number (S/N)</label>
-                                <input type="text" id="serialNumber" class="form-control" required placeholder="Contoh: SN-99812739">
+                                <input type="text" id="serialNumber" class="form-control" required placeholder="SN-99812739">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Nama Pengguna (User)</label>
+                                <input type="text" id="user" class="form-control" placeholder="Nama User">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Divisi / Departemen</label>
+                                <input type="text" id="division" class="form-control" placeholder="IT / Finance / HRD">
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-cpu me-1"></i> Spesifikasi Hardware & Monitor</h6>
+                        <div class="row g-3 mb-4 p-3 bg-light rounded">
+                            <div class="col-md-4">
+                                <label class="form-label">Versi Windows / OS</label>
+                                <input type="text" id="osVersion" class="form-control" placeholder="Ketik Disini">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Motherboard (Mobo)</label>
+                                <input type="text" id="motherboard" class="form-control" placeholder="Ketik Disini">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">RAM</label>
+                                <input type="text" id="ram" class="form-control" placeholder="Ketik Disini">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Nama Pengguna (User)</label>
-                                <input type="text" id="user" class="form-control" placeholder="Nama Karyawan / IT Gudang">
+                                <label class="form-label">Kapasitas SSD</label>
+                                <input type="text" id="ssd" class="form-control" placeholder="SATA/NVMe">
                             </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Kapasitas HDD</label>
+                                <input type="text" id="hdd" class="form-control" placeholder="SATA">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Merk Monitor</label>
+                                <input type="text" id="monitorBrand" class="form-control" placeholder="LG / Dell / Samsung">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Ukuran Monitor (Inch)</label>
+                                <input type="text" id="monitorSize" class="form-control" placeholder="Inch">
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-card-checklist me-1"></i> Kondisi & Nilai Aset</h6>
+                        <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label">Status</label>
                                 <select id="status" class="form-select" required>
@@ -206,15 +290,15 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Harga Beli (Rp)</label>
-                                <input type="number" id="price" class="form-control" required placeholder="15000000">
+                                <input type="number" id="price" class="form-control" required placeholder="Ketik Disini">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Tanggal Pembelian</label>
                                 <input type="date" id="buyDate" class="form-control" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Masa Garansi / Umur Aset (Tahun)</label>
-                                <input type="number" id="usefulLife" class="form-control" value="4" required>
+                                <label class="form-label">Garansi / Umur Aset (Tahun)</label>
+                                <input type="number" id="usefulLife" class="form-control" value="0" required>
                             </div>
                         </div>
                     </div>
@@ -223,6 +307,41 @@
                         <button type="submit" class="btn btn-primary">Simpan Data</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Kelola User (Khusus Admin) -->
+    <div class="modal fade" id="modalUsers" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-people me-2"></i>Manajemen User Aplikasi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formAddUser" onsubmit="addUser(event)" class="mb-4">
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <input type="text" id="newUsername" class="form-control" placeholder="Username" required>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="password" id="newPassword" class="form-control" placeholder="Password" required>
+                            </div>
+                            <div class="col-md-4">
+                                <select id="newRole" class="form-select" required>
+                                    <option value="user">User (View)</option>
+                                    <option value="admin">Admin (Full)</option>
+                                </select>
+                            </div>
+                            <div class="col-12 mt-2">
+                                <button type="submit" class="btn btn-success btn-sm w-100">+ Tambah Akun</button>
+                            </div>
+                        </div>
+                    </form>
+                    <h6>Daftar Akun Pengguna:</h6>
+                    <ul class="list-group" id="userListGroup"></ul>
+                </div>
             </div>
         </div>
     </div>
@@ -236,41 +355,36 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="text-muted small">Pilih file Excel (.xlsx / .xls) untuk mengunggah banyak data aset sekaligus ke dalam sistem.</p>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Pilih File Excel:</label>
                         <input type="file" id="excelFileInput" class="form-control" accept=".xlsx, .xls, .csv">
                     </div>
                     <div class="alert alert-info p-2 small">
-                        <i class="bi bi-info-circle me-1"></i> Belum punya format datanya? 
-                        <a href="#" onclick="downloadTemplate()" class="fw-bold text-decoration-none">Download Format Template Excel</a>
+                        <i class="bi bi-info-circle me-1"></i> <a href="#" onclick="downloadTemplate()" class="fw-bold text-decoration-none">Download Format Template Excel Terbaru</a>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-success" onclick="processExcelImport()"><i class="bi bi-upload me-1"></i> Proses Import</button>
+                    <button type="button" class="btn btn-success" onclick="processExcelImport()">Proses Import</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Cetak Barcode & QR Code -->
+    <!-- Modal Barcode -->
     <div class="modal fade" id="modalBarcode" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Label Barcode & QR Code Aset</h5>
+                    <h5 class="modal-title fw-bold">Label Barcode & QR Code</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body text-center" id="printableArea">
                     <h5 id="barcodeAssetName" class="fw-bold mb-1"></h5>
-                    <p id="barcodeAssetUser" class="text-muted mb-3 small"></p>
-                    <div class="barcode-container mb-3">
-                        <svg id="barcodeCanvas"></svg>
-                    </div>
-                    <div class="d-flex justify-content-center mb-2">
-                        <div id="qrcodeCanvas"></div>
-                    </div>
+                    <p id="barcodeAssetUser" class="text-muted mb-2 small"></p>
+                    <p id="barcodeAssetSpecs" class="fw-semibold text-primary mb-3 small"></p>
+                    <div class="barcode-container mb-3"><svg id="barcodeCanvas"></svg></div>
+                    <div class="d-flex justify-content-center mb-2"><div id="qrcodeCanvas"></div></div>
                     <small class="text-muted" id="barcodeAssetCode"></small>
                 </div>
                 <div class="modal-footer">
@@ -281,32 +395,139 @@
         </div>
     </div>
 
-    <!-- JS & Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Data Aset diinisialisasi KOSONG BERSIH
+        // DB Users Default
+        let defaultUsers = [
+            { username: 'naufal', password: '12', role: 'admin' },
+            { username: 'user', password: 'user', role: 'user' }
+        ];
+        let appUsers = JSON.parse(localStorage.getItem('it_app_users')) || defaultUsers;
+        let currentUser = JSON.parse(sessionStorage.getItem('it_current_user')) || null;
+
+        // DB Assets
         let initialAssets = [];
         let assets = JSON.parse(localStorage.getItem('it_assets_data')) || initialAssets;
 
+        // SISTEM AUTH & LOGIN
+        function checkAuth() {
+            if (currentUser) {
+                document.getElementById('loginOverlay').style.display = 'none';
+                document.getElementById('appContent').style.display = 'block';
+                document.getElementById('userRoleBadge').innerText = `User: ${currentUser.username} (${currentUser.role.toUpperCase()})`;
+
+                if (currentUser.role !== 'admin') {
+                    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+                } else {
+                    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'inline-block');
+                }
+                renderTable(assets);
+                updateDashboard();
+                populateDivisiFilter();
+                renderUserList();
+            } else {
+                document.getElementById('loginOverlay').style.display = 'flex';
+                document.getElementById('appContent').style.display = 'none';
+            }
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('loginUsername').value;
+            const p = document.getElementById('loginPassword').value;
+            const found = appUsers.find(x => x.username === u && x.password === p);
+
+            if (found) {
+                currentUser = found;
+                sessionStorage.setItem('it_current_user', JSON.stringify(found));
+                checkAuth();
+            } else {
+                alert('Username atau password salah!');
+            }
+        }
+
+        function handleLogout() {
+            sessionStorage.removeItem('it_current_user');
+            currentUser = null;
+            checkAuth();
+        }
+
+        // MANAJEMEN USER (ADMIN ONLY)
+        function renderUserList() {
+            const list = document.getElementById('userListGroup');
+            list.innerHTML = '';
+            appUsers.forEach(u => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                li.innerHTML = `
+                    <div><b>${u.username}</b> <span class="badge bg-info ms-1">${u.role}</span></div>
+                    ${u.username !== 'admin' ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u.username}')"><i class="bi bi-trash"></i></button>` : ''}
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function addUser(e) {
+            e.preventDefault();
+            const username = document.getElementById('newUsername').value;
+            const password = document.getElementById('newPassword').value;
+            const role = document.getElementById('newRole').value;
+
+            if(appUsers.some(u => u.username === username)) {
+                alert('Username sudah ada!');
+                return;
+            }
+            appUsers.push({ username, password, role });
+            localStorage.setItem('it_app_users', JSON.stringify(appUsers));
+            renderUserList();
+            document.getElementById('formAddUser').reset();
+        }
+
+        function deleteUser(username) {
+            if(confirm(`Hapus akun ${username}?`)) {
+                appUsers = appUsers.filter(u => u.username !== username);
+                localStorage.setItem('it_app_users', JSON.stringify(appUsers));
+                renderUserList();
+            }
+        }
+
+        // DATA ASET LOGIC
         function saveToLocalStorage() {
             localStorage.setItem('it_assets_data', JSON.stringify(assets));
             renderTable(assets);
             updateDashboard();
+            populateDivisiFilter();
+        }
+
+        function clearAllData() {
+            if (confirm('Apakah Anda yakin ingin MENGHAPUS SEMUA DATA aset?')) {
+                localStorage.removeItem('it_assets_data');
+                assets = [];
+                saveToLocalStorage();
+            }
         }
 
         function calculateDepreciation(price, buyDate, usefulLifeYears) {
             const buyYear = new Date(buyDate).getFullYear();
             const currentYear = new Date().getFullYear();
             const age = Math.max(0, currentYear - buyYear);
-            
             if (age >= usefulLifeYears) return 0;
-            const annualDepreciation = price / usefulLifeYears;
-            const currentValue = price - (annualDepreciation * age);
-            return Math.max(0, currentValue);
+            return Math.max(0, price - ((price / usefulLifeYears) * age));
         }
 
-        function formatRupiah(number) {
-            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number);
+        function formatRupiah(num) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
+        }
+
+        function populateDivisiFilter() {
+            const select = document.getElementById('filterDivisi');
+            const currentVal = select.value;
+            const divisions = [...new Set(assets.map(a => a.division).filter(Boolean))];
+            select.innerHTML = '<option value="">Semua Divisi</option>';
+            divisions.forEach(d => {
+                select.innerHTML += `<option value="${d}">${d}</option>`;
+            });
+            select.value = currentVal;
         }
 
         function renderTable(data) {
@@ -314,7 +535,7 @@
             tbody.innerHTML = '';
 
             if(data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">Belum ada data aset. Klik <b>Tambah Aset</b> atau <b>Import Excel</b> untuk memasukkan data.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">Belum ada data aset.</td></tr>`;
                 return;
             }
 
@@ -324,19 +545,31 @@
                                    asset.status === 'Tersedia' ? 'bg-info' : 
                                    asset.status === 'Perbaikan' ? 'bg-warning text-dark' : 'bg-danger';
 
+                const osText = asset.osVersion ? `OS: ${asset.osVersion}` : '';
+                const ramText = asset.ram ? `RAM: ${asset.ram}` : '';
+                const ssdText = asset.ssd ? `SSD: ${asset.ssd}` : '';
+                const hddText = asset.hdd ? `HDD: ${asset.hdd}` : '';
+                const moboText = asset.motherboard ? `Mobo: ${asset.motherboard}` : '';
+                const monBrandText = asset.monitorBrand ? `Mon: ${asset.monitorBrand}` : '';
+                const monSizeText = asset.monitorSize ? `(${asset.monitorSize})` : '';
+
+                const specs = [osText, moboText, ramText, ssdText, hddText, `${monBrandText} ${monSizeText}`.trim()].filter(Boolean).join(' | ');
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td class="fw-bold text-primary">${asset.code}</td>
-                    <td><div class="fw-bold">${asset.name}</div><small class="text-muted">Kondisi: ${asset.condition}</small></td>
-                    <td><span class="badge bg-light text-dark border">${asset.category}</span></td>
+                    <td><div class="fw-bold">${asset.name}</div><span class="badge bg-light text-dark border">${asset.category}</span></td>
+                    <td><div class="fw-bold">${asset.user || '-'}</div><small class="text-muted">Divisi: ${asset.division || '-'}</small></td>
+                    <td>${specs ? `<span class="spec-badge"><i class="bi bi-cpu me-1"></i>${specs}</span>` : '<span class="text-muted small">-</span>'}</td>
                     <td><code>${asset.serialNumber || '-'}</code></td>
-                    <td>${asset.user || '-'}</td>
                     <td><span class="badge ${badgeStatus}">${asset.status}</span></td>
                     <td>${formatRupiah(currentValue)}</td>
                     <td class="text-center">
-                        <button class="btn btn-sm btn-outline-dark me-1" onclick="showBarcodeModal('${asset.id}')" title="Label Barcode"><i class="bi bi-qr-code"></i></button>
-                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editAsset('${asset.id}')" title="Edit"><i class="bi bi-pencil"></i></button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteAsset('${asset.id}')" title="Hapus"><i class="bi bi-trash"></i></button>
+                        <button class="btn btn-sm btn-outline-dark me-1" onclick="showBarcodeModal('${asset.id}')"><i class="bi bi-qr-code"></i></button>
+                        ${currentUser && currentUser.role === 'admin' ? `
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="editAsset('${asset.id}')"><i class="bi bi-pencil"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteAsset('${asset.id}')"><i class="bi bi-trash"></i></button>
+                        ` : ''}
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -347,12 +580,8 @@
             document.getElementById('totalAsetCount').innerText = assets.length;
             document.getElementById('aktifCount').innerText = assets.filter(a => a.status === 'Digunakan').length;
             document.getElementById('perbaikanCount').innerText = assets.filter(a => a.status === 'Perbaikan').length;
-
-            const totalCurrentValue = assets.reduce((sum, asset) => {
-                return sum + calculateDepreciation(asset.price, asset.buyDate, asset.usefulLife);
-            }, 0);
-
-            document.getElementById('totalNilaiAset').innerText = formatRupiah(totalCurrentValue);
+            const total = assets.reduce((sum, a) => sum + calculateDepreciation(a.price, a.buyDate, a.usefulLife), 0);
+            document.getElementById('totalNilaiAset').innerText = formatRupiah(total);
         }
 
         function saveAsset(e) {
@@ -362,6 +591,16 @@
             const category = document.getElementById('category').value;
             const serialNumber = document.getElementById('serialNumber').value;
             const user = document.getElementById('user').value;
+            const division = document.getElementById('division').value;
+
+            const osVersion = document.getElementById('osVersion').value;
+            const motherboard = document.getElementById('motherboard').value;
+            const ram = document.getElementById('ram').value;
+            const ssd = document.getElementById('ssd').value;
+            const hdd = document.getElementById('hdd').value;
+            const monitorBrand = document.getElementById('monitorBrand').value;
+            const monitorSize = document.getElementById('monitorSize').value;
+
             const status = document.getElementById('status').value;
             const condition = document.getElementById('condition').value;
             const price = parseFloat(document.getElementById('price').value);
@@ -369,15 +608,14 @@
             const usefulLife = parseInt(document.getElementById('usefulLife').value);
 
             if (id) {
-                const index = assets.findIndex(a => a.id === id);
-                assets[index] = { ...assets[index], name, category, serialNumber, user, status, condition, price, buyDate, usefulLife };
+                const idx = assets.findIndex(a => a.id === id);
+                assets[idx] = { ...assets[idx], name, category, serialNumber, user, division, osVersion, motherboard, ram, ssd, hdd, monitorBrand, monitorSize, status, condition, price, buyDate, usefulLife };
             } else {
-                const newAsset = {
+                assets.push({
                     id: Date.now().toString(),
                     code: 'AST-' + Math.floor(100000 + Math.random() * 900000),
-                    name, category, serialNumber, user, status, condition, price, buyDate, usefulLife
-                };
-                assets.push(newAsset);
+                    name, category, serialNumber, user, division, osVersion, motherboard, ram, ssd, hdd, monitorBrand, monitorSize, status, condition, price, buyDate, usefulLife
+                });
             }
 
             saveToLocalStorage();
@@ -386,24 +624,32 @@
         }
 
         function editAsset(id) {
-            const asset = assets.find(a => a.id === id);
-            document.getElementById('assetId').value = asset.id;
-            document.getElementById('name').value = asset.name;
-            document.getElementById('category').value = asset.category;
-            document.getElementById('serialNumber').value = asset.serialNumber;
-            document.getElementById('user').value = asset.user;
-            document.getElementById('status').value = asset.status;
-            document.getElementById('condition').value = asset.condition;
-            document.getElementById('price').value = asset.price;
-            document.getElementById('buyDate').value = asset.buyDate;
-            document.getElementById('usefulLife').value = asset.usefulLife;
+            const a = assets.find(x => x.id === id);
+            document.getElementById('assetId').value = a.id;
+            document.getElementById('name').value = a.name;
+            document.getElementById('category').value = a.category;
+            document.getElementById('serialNumber').value = a.serialNumber;
+            document.getElementById('user').value = a.user || '';
+            document.getElementById('division').value = a.division || '';
+            document.getElementById('osVersion').value = a.osVersion || '';
+            document.getElementById('motherboard').value = a.motherboard || '';
+            document.getElementById('ram').value = a.ram || '';
+            document.getElementById('ssd').value = a.ssd || '';
+            document.getElementById('hdd').value = a.hdd || '';
+            document.getElementById('monitorBrand').value = a.monitorBrand || '';
+            document.getElementById('monitorSize').value = a.monitorSize || '';
+            document.getElementById('status').value = a.status;
+            document.getElementById('condition').value = a.condition;
+            document.getElementById('price').value = a.price;
+            document.getElementById('buyDate').value = a.buyDate;
+            document.getElementById('usefulLife').value = a.usefulLife;
             
             document.getElementById('modalTitle').innerText = 'Edit Data Aset';
             new bootstrap.Modal(document.getElementById('modalTambah')).show();
         }
 
         function deleteAsset(id) {
-            if (confirm('Apakah Anda yakin ingin menghapus aset ini?')) {
+            if (confirm('Yakin ingin menghapus aset ini?')) {
                 assets = assets.filter(a => a.id !== id);
                 saveToLocalStorage();
             }
@@ -411,6 +657,7 @@
 
         function filterData() {
             const search = document.getElementById('searchInput').value.toLowerCase();
+            const division = document.getElementById('filterDivisi').value;
             const category = document.getElementById('filterKategori').value;
             const status = document.getElementById('filterStatus').value;
 
@@ -418,146 +665,116 @@
                 const matchSearch = a.name.toLowerCase().includes(search) || 
                                     a.code.toLowerCase().includes(search) || 
                                     (a.serialNumber && a.serialNumber.toLowerCase().includes(search)) ||
-                                    (a.user && a.user.toLowerCase().includes(search));
+                                    (a.user && a.user.toLowerCase().includes(search)) ||
+                                    (a.ram && a.ram.toLowerCase().includes(search));
+                const matchDiv = division === '' || a.division === division;
                 const matchCat = category === '' || a.category === category;
                 const matchStatus = status === '' || a.status === status;
-                return matchSearch && matchCat && matchStatus;
+                return matchSearch && matchDiv && matchCat && matchStatus;
             });
-
             renderTable(filtered);
         }
 
-        // --- FITUR IMPORT EXCEL ---
+        // IMPORT & EXPORT EXCEL
         function processExcelImport() {
             const fileInput = document.getElementById('excelFileInput');
             const file = fileInput.files[0];
-
-            if (!file) {
-                alert('Silakan pilih file Excel terlebih dahulu!');
-                return;
-            }
+            if (!file) return alert('Pilih file Excel dulu!');
 
             const reader = new FileReader();
             reader.onload = function (e) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                const jsonResult = XLSX.utils.sheet_to_json(worksheet);
+                const jsonResult = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
 
-                if (jsonResult.length === 0) {
-                    alert('File Excel kosong atau format tidak sesuai!');
-                    return;
-                }
-
-                let importedCount = 0;
+                let count = 0;
                 jsonResult.forEach(row => {
                     if (row['Nama Barang']) {
-                        const newAsset = {
+                        assets.push({
                             id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
                             code: row['Kode Aset'] || ('AST-' + Math.floor(100000 + Math.random() * 900000)),
                             name: row['Nama Barang'],
                             category: row['Kategori'] || 'Lainnya',
                             serialNumber: row['Serial Number'] || '-',
                             user: row['Pengguna'] || '-',
+                            division: row['Divisi'] || '-',
+                            osVersion: row['OS'] || '-',
+                            motherboard: row['Motherboard'] || '-',
+                            ram: row['RAM'] || '-',
+                            ssd: row['SSD'] || '-',
+                            hdd: row['HDD'] || '-',
+                            monitorBrand: row['Merk Monitor'] || '-',
+                            monitorSize: row['Ukuran Monitor'] || '-',
                             status: row['Status'] || 'Tersedia',
                             condition: row['Kondisi'] || 'Baik',
                             price: parseFloat(row['Harga Beli']) || 0,
                             buyDate: row['Tanggal Pembelian'] || new Date().toISOString().split('T')[0],
-                            usefulLife: parseInt(row['Masa Garansi (Thn)']) || 4
-                        };
-                        assets.push(newAsset);
-                        importedCount++;
+                            usefulLife: parseInt(row['Garansi (Thn)']) || 4
+                        });
+                        count++;
                     }
                 });
 
                 saveToLocalStorage();
                 bootstrap.Modal.getInstance(document.getElementById('modalImport')).hide();
-                fileInput.value = '';
-                alert(`Berhasil mengimpor ${importedCount} data aset!`);
+                alert(`Berhasil mengimpor ${count} data!`);
             };
             reader.readAsArrayBuffer(file);
         }
 
         function downloadTemplate() {
-            const templateData = [
-                {
-                    "Kode Aset": "AST-1001",
-                    "Nama Barang": "Laptop Asus ROG",
-                    "Kategori": "Laptop",
-                    "Serial Number": "SN-12345678",
-                    "Pengguna": "Budi Santoso",
-                    "Status": "Digunakan",
-                    "Kondisi": "Baik",
-                    "Harga Beli": 18000000,
-                    "Tanggal Pembelian": "2023-01-15",
-                    "Masa Garansi (Thn)": 4
-                }
-            ];
-
-            const ws = XLSX.utils.json_to_sheet(templateData);
+            const template = [{
+                "Kode Aset": "AST-1001", "Nama Barang": "PC Office i5", "Kategori": "PC Desktop",
+                "Serial Number": "SN-00192", "Pengguna": "Budi", "Divisi": "Finance",
+                "OS": "Windows 11", "Motherboard": "ASUS B550M", "RAM": "16 GB", "SSD": "512 GB", "HDD": "1 TB",
+                "Merk Monitor": "LG", "Ukuran Monitor": "24 Inch", "Status": "Digunakan", "Kondisi": "Baik",
+                "Harga Beli": 12000000, "Tanggal Pembelian": "2023-01-01", "Garansi (Thn)": 3
+            }];
+            const ws = XLSX.utils.json_to_sheet(template);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Template Aset");
-            XLSX.writeFile(wb, "Template_Import_Aset_IT.xlsx");
+            XLSX.utils.book_append_sheet(wb, ws, "Template");
+            XLSX.writeFile(wb, "Template_Import_Aset.xlsx");
         }
 
-        // --- FITUR EKSPOR EXCEL ---
         function exportToExcel() {
             const exportData = assets.map(a => ({
-                'Kode Aset': a.code,
-                'Nama Barang': a.name,
-                'Kategori': a.category,
-                'Serial Number': a.serialNumber,
-                'Pengguna': a.user,
-                'Status': a.status,
-                'Kondisi': a.condition,
-                'Harga Beli': a.price,
-                'Tanggal Pembelian': a.buyDate,
-                'Nilai Sisa Saat Ini': calculateDepreciation(a.price, a.buyDate, a.usefulLife)
+                'Kode Aset': a.code, 'Nama Barang': a.name, 'Kategori': a.category, 'Serial Number': a.serialNumber,
+                'Pengguna': a.user, 'Divisi': a.division, 'OS': a.osVersion, 'Motherboard': a.motherboard,
+                'RAM': a.ram, 'SSD': a.ssd, 'HDD': a.hdd, 'Merk Monitor': a.monitorBrand, 'Ukuran Monitor': a.monitorSize,
+                'Status': a.status, 'Kondisi': a.condition, 'Harga Beli': a.price, 'Tanggal Beli': a.buyDate,
+                'Nilai Sisa': calculateDepreciation(a.price, a.buyDate, a.usefulLife)
             }));
-
             const ws = XLSX.utils.json_to_sheet(exportData);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Daftar Aset IT");
+            XLSX.utils.book_append_sheet(wb, ws, "Data Aset");
             XLSX.writeFile(wb, "Data_Aset_IT.xlsx");
         }
 
-        // --- FITUR BARCODE & QR CODE ---
+        // BARCODE
         function showBarcodeModal(id) {
-            const asset = assets.find(a => a.id === id);
-            document.getElementById('barcodeAssetName').innerText = asset.name;
-            document.getElementById('barcodeAssetUser').innerText = `User: ${asset.user || '-'} | S/N: ${asset.serialNumber || '-'}`;
-            document.getElementById('barcodeAssetCode').innerText = asset.code;
+            const a = assets.find(x => x.id === id);
+            document.getElementById('barcodeAssetName').innerText = a.name;
+            document.getElementById('barcodeAssetUser').innerText = `User: ${a.user || '-'} (${a.division || '-'}) | S/N: ${a.serialNumber || '-'}`;
+            document.getElementById('barcodeAssetSpecs').innerText = `Mon: ${a.monitorBrand || '-'} ${a.monitorSize || ''} | RAM: ${a.ram || '-'}`;
+            document.getElementById('barcodeAssetCode').innerText = a.code;
 
-            JsBarcode("#barcodeCanvas", asset.code, {
-                format: "CODE128",
-                width: 2,
-                height: 50,
-                displayValue: true
-            });
-
+            JsBarcode("#barcodeCanvas", a.code, { format: "CODE128", width: 2, height: 50, displayValue: true });
             document.getElementById('qrcodeCanvas').innerHTML = '';
-            new QRCode(document.getElementById('qrcodeCanvas'), {
-                text: `${asset.code} | ${asset.name} | S/N: ${asset.serialNumber}`,
-                width: 90,
-                height: 90
-            });
-
+            new QRCode(document.getElementById('qrcodeCanvas'), { text: `${a.code} | ${a.name} | ${a.user}`, width: 90, height: 90 });
             new bootstrap.Modal(document.getElementById('modalBarcode')).show();
         }
 
         function printBarcode() {
-            const printContent = document.getElementById('printableArea').innerHTML;
-            const originalContent = document.body.innerHTML;
-            document.body.innerHTML = `<div style="text-align:center; padding: 20px;">${printContent}</div>`;
+            const content = document.getElementById('printableArea').innerHTML;
+            const orig = document.body.innerHTML;
+            document.body.innerHTML = `<div style="text-align:center; padding: 20px;">${content}</div>`;
             window.print();
-            document.body.innerHTML = originalContent;
+            document.body.innerHTML = orig;
             location.reload();
         }
 
-        // Inisialisasi awal
-        renderTable(assets);
-        updateDashboard();
+        // Inisialisasi Auth saat pertama dibuka
+        checkAuth();
     </script>
 </body>
 </html>
