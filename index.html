@@ -18,9 +18,22 @@
         .card-custom { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .bg-gradient-primary { background: linear-gradient(45deg, #0d6efd, #0dcaf0); color: white; }
         .table-responsive { border-radius: 8px; overflow: hidden; }
-        .barcode-container { background: #fff; padding: 15px; border: 1px dashed #ccc; text-align: center; }
-        .spec-badge { font-size: 0.75rem; background-color: #e9ecef; color: #495057; border-radius: 4px; padding: 2px 6px; display: inline-block; margin-top: 3px; }
+        .barcode-container { background: #fff; padding: 10px; border: 1px dashed #bbb; text-align: center; border-radius: 8px; }
+        .spec-badge { font-size: 0.75rem; background-color: #e9ecef; color: #495057; border-radius: 4px; padding: 3px 6px; display: inline-block; margin-top: 3px; }
         .login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1a1e21; z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        
+        /* Merapikan Tombol Aksi */
+        .action-btns { display: flex; gap: 4px; justify-content: center; align-items: center; flex-wrap: nowrap; }
+        
+        /* Tag Label Barcode Modern */
+        .asset-tag-card {
+            border: 2px solid #0d6efd;
+            border-radius: 12px;
+            padding: 15px;
+            background: #ffffff;
+            max-width: 420px;
+            margin: 0 auto;
+        }
     </style>
 </head>
 <body>
@@ -44,7 +57,7 @@
                 </div>
                 <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Login</button>
             </form>
-                   </div>
+        </div>
     </div>
 
     <!-- MAIN APP CONTROLS -->
@@ -145,7 +158,6 @@
                     <div class="col-md-3">
                         <select id="filterDivisi" class="form-select" onchange="filterData()">
                             <option value="">Semua Divisi</option>
-                            <!-- List Divisi Diisi Dinamis via JS -->
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -184,11 +196,29 @@
                                 <th>S/N (Serial)</th>
                                 <th>Status</th>
                                 <th>Nilai Sisa</th>
-                                <th class="text-center">Aksi</th>
+                                <th class="text-center" style="min-width: 150px;">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody"></tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL VIEW DETAIL ASET (FITUR BARU) -->
+    <div class="modal fade" id="modalView" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-laptop me-2"></i>Detail Spesifikasi & Informasi Aset</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4" id="viewModalContent">
+                    <!-- Diisi lewat JS -->
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
                 </div>
             </div>
         </div>
@@ -210,7 +240,7 @@
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
                                 <label class="form-label">Nama Barang / Aset</label>
-                                <input type="text" id="name" class="form-control"  placeholder="Contoh: PC Desktop Core i7">
+                                <input type="text" id="name" class="form-control" placeholder="Contoh: PC Desktop Core i7">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Kategori</label>
@@ -225,15 +255,15 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Serial Number (S/N)</label>
-                                <input type="text" id="serialNumber" class="form-control"  placeholder="SN-99812739">
+                                <input type="text" id="serialNumber" class="form-control" placeholder="SN-99812739">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Nama Pengguna (User)</label>
-                                <input type="text" id="user" class="form-control" required placeholder="Nama User">
+                                <input type="text" id="user" class="form-control" placeholder="Nama User">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Divisi / Departemen</label>
-                                <input type="text" id="division" class="form-control" required placeholder="IT / Finance / HRD">
+                                <input type="text" id="division" class="form-control" placeholder="IT / Finance / HRD">
                             </div>
                         </div>
 
@@ -290,15 +320,15 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Harga Beli (Rp)</label>
-                                <input type="number" id="price" class="form-control"  placeholder="Ketik Disini">
+                                <input type="number" id="price" class="form-control" placeholder="Ketik Disini">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Tanggal Pembelian</label>
-                                <input type="date" id="buyDate" class="form-control" >
+                                <input type="date" id="buyDate" class="form-control">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Garansi / Umur Aset (Tahun)</label>
-                                <input type="number" id="usefulLife" class="form-control" value="0" >
+                                <input type="number" id="usefulLife" class="form-control" value="0">
                             </div>
                         </div>
                     </div>
@@ -371,21 +401,33 @@
         </div>
     </div>
 
-    <!-- Modal Barcode -->
+    <!-- MODAL BARCODE & SCAN DENGAN DESAIN BARU -->
     <div class="modal fade" id="modalBarcode" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Label Barcode & QR Code</h5>
+                    <h5 class="modal-title fw-bold"><i class="bi bi-qr-code-scan text-primary me-2"></i>Label Scan & Barcode Aset</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body text-center" id="printableArea">
-                    <h5 id="barcodeAssetName" class="fw-bold mb-1"></h5>
-                    <p id="barcodeAssetUser" class="text-muted mb-2 small"></p>
-                    <p id="barcodeAssetSpecs" class="fw-semibold text-primary mb-3 small"></p>
-                    <div class="barcode-container mb-3"><svg id="barcodeCanvas"></svg></div>
-                    <div class="d-flex justify-content-center mb-2"><div id="qrcodeCanvas"></div></div>
-                    <small class="text-muted" id="barcodeAssetCode"></small>
+                <div class="modal-body text-center p-4" id="printableArea">
+                    <div class="asset-tag-card">
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+                            <span class="fw-bold text-primary"><i class="bi bi-laptop-fill me-1"></i> IT ASSET BA</span>
+                            <span class="badge bg-dark" id="barcodeAssetCode"></span>
+                        </div>
+                        <h5 id="barcodeAssetName" class="fw-bold text-dark mb-1"></h5>
+                        <p id="barcodeAssetUser" class="text-muted small mb-2"></p>
+                        
+                        <!-- Rincian Spesifikasi untuk Tampilan Scan -->
+                        <div id="barcodeSpecsContainer" class="p-2 bg-light rounded text-start small mb-3 border"></div>
+
+                        <div class="barcode-container mb-3">
+                            <svg id="barcodeCanvas"></svg>
+                        </div>
+                        <div class="d-flex justify-content-center mb-1">
+                            <div id="qrcodeCanvas"></div>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
@@ -507,15 +549,25 @@
             }
         }
 
+        // PERBAIKAN BUG RpNaN
         function calculateDepreciation(price, buyDate, usefulLifeYears) {
+            const parsedPrice = parseFloat(price) || 0;
+            if (!parsedPrice) return 0;
+            if (!buyDate) return parsedPrice;
+
             const buyYear = new Date(buyDate).getFullYear();
+            if (isNaN(buyYear)) return parsedPrice;
+
             const currentYear = new Date().getFullYear();
             const age = Math.max(0, currentYear - buyYear);
-            if (age >= usefulLifeYears) return 0;
-            return Math.max(0, price - ((price / usefulLifeYears) * age));
+            const life = parseInt(usefulLifeYears) || 0;
+
+            if (life <= 0 || age >= life) return 0;
+            return Math.max(0, parsedPrice - ((parsedPrice / life) * age));
         }
 
         function formatRupiah(num) {
+            if (isNaN(num) || num === null || num === undefined) return 'Rp 0';
             return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
         }
 
@@ -565,15 +617,80 @@
                     <td><span class="badge ${badgeStatus}">${asset.status}</span></td>
                     <td>${formatRupiah(currentValue)}</td>
                     <td class="text-center">
-                        <button class="btn btn-sm btn-outline-dark me-1" onclick="showBarcodeModal('${asset.id}')"><i class="bi bi-qr-code"></i></button>
-                        ${currentUser && currentUser.role === 'admin' ? `
-                            <button class="btn btn-sm btn-outline-primary me-1" onclick="editAsset('${asset.id}')"><i class="bi bi-pencil"></i></button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteAsset('${asset.id}')"><i class="bi bi-trash"></i></button>
-                        ` : ''}
+                        <div class="action-btns">
+                            <button class="btn btn-sm btn-outline-info" onclick="viewAsset('${asset.id}')" title="Lihat Detail Clear"><i class="bi bi-eye-fill"></i></button>
+                            <button class="btn btn-sm btn-outline-dark" onclick="showBarcodeModal('${asset.id}')" title="Barcode & QR"><i class="bi bi-qr-code"></i></button>
+                            ${currentUser && currentUser.role === 'admin' ? `
+                                <button class="btn btn-sm btn-outline-primary" onclick="editAsset('${asset.id}')" title="Edit"><i class="bi bi-pencil-fill"></i></button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteAsset('${asset.id}')" title="Hapus"><i class="bi bi-trash-fill"></i></button>
+                            ` : ''}
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
+        }
+
+        // FUNGSI UNTUK VIEW DETAIL ASET (BESAR & CLEAR)
+        function viewAsset(id) {
+            const a = assets.find(x => x.id === id);
+            if (!a) return;
+
+            const currentValue = calculateDepreciation(a.price, a.buyDate, a.usefulLife);
+            const badgeStatus = a.status === 'Digunakan' ? 'bg-success' : 
+                               a.status === 'Tersedia' ? 'bg-info' : 
+                               a.status === 'Perbaikan' ? 'bg-warning text-dark' : 'bg-danger';
+
+            const htmlContent = `
+                <div class="row g-3">
+                    <div class="col-md-12 border-bottom pb-2 d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge bg-primary fs-6 mb-1">${a.code}</span>
+                            <h4 class="fw-bold text-dark mb-0">${a.name}</h4>
+                        </div>
+                        <div>
+                            <span class="badge ${badgeStatus} fs-6">${a.status}</span>
+                            <span class="badge bg-secondary fs-6 ms-1">${a.category}</span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded h-100">
+                            <h6 class="fw-bold text-primary mb-2"><i class="bi bi-person-badge me-1"></i> Pengguna & Divisi</h6>
+                            <p class="mb-1"><strong>Nama User:</strong> ${a.user || '-'}</p>
+                            <p class="mb-1"><strong>Divisi:</strong> ${a.division || '-'}</p>
+                            <p class="mb-0"><strong>Serial Number (S/N):</strong> <code>${a.serialNumber || '-'}</code></p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded h-100">
+                            <h6 class="fw-bold text-primary mb-2"><i class="bi bi-cash-stack me-1"></i> Kondisi & Finansial</h6>
+                            <p class="mb-1"><strong>Kondisi:</strong> ${a.condition || '-'}</p>
+                            <p class="mb-1"><strong>Harga Beli:</strong> ${formatRupiah(a.price)}</p>
+                            <p class="mb-1"><strong>Tanggal Pembelian:</strong> ${a.buyDate || '-'}</p>
+                            <p class="mb-0"><strong>Nilai Sisa Saat Ini:</strong> <span class="fw-bold text-success">${formatRupiah(currentValue)}</span></p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-12">
+                        <div class="p-3 border rounded bg-white">
+                            <h6 class="fw-bold text-primary mb-3"><i class="bi bi-cpu me-1"></i> Rincian Spesifikasi Hardware</h6>
+                            <div class="row g-2 text-dark">
+                                <div class="col-md-4"><strong>Sistem Operasi (OS):</strong><br> ${a.osVersion || '-'}</div>
+                                <div class="col-md-4"><strong>Motherboard:</strong><br> ${a.motherboard || '-'}</div>
+                                <div class="col-md-4"><strong>RAM:</strong><br> ${a.ram || '-'}</div>
+                                <div class="col-md-4"><strong>SSD:</strong><br> ${a.ssd || '-'}</div>
+                                <div class="col-md-4"><strong>HDD:</strong><br> ${a.hdd || '-'}</div>
+                                <div class="col-md-4"><strong>Monitor:</strong><br> ${a.monitorBrand || '-'} ${a.monitorSize ? `(${a.monitorSize})` : ''}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('viewModalContent').innerHTML = htmlContent;
+            new bootstrap.Modal(document.getElementById('modalView')).show();
         }
 
         function updateDashboard() {
@@ -603,9 +720,9 @@
 
             const status = document.getElementById('status').value;
             const condition = document.getElementById('condition').value;
-            const price = parseFloat(document.getElementById('price').value);
+            const price = parseFloat(document.getElementById('price').value) || 0;
             const buyDate = document.getElementById('buyDate').value;
-            const usefulLife = parseInt(document.getElementById('usefulLife').value);
+            const usefulLife = parseInt(document.getElementById('usefulLife').value) || 0;
 
             if (id) {
                 const idx = assets.findIndex(a => a.id === id);
@@ -640,9 +757,9 @@
             document.getElementById('monitorSize').value = a.monitorSize || '';
             document.getElementById('status').value = a.status;
             document.getElementById('condition').value = a.condition;
-            document.getElementById('price').value = a.price;
-            document.getElementById('buyDate').value = a.buyDate;
-            document.getElementById('usefulLife').value = a.usefulLife;
+            document.getElementById('price').value = a.price || '';
+            document.getElementById('buyDate').value = a.buyDate || '';
+            document.getElementById('usefulLife').value = a.usefulLife || 0;
             
             document.getElementById('modalTitle').innerText = 'Edit Data Aset';
             new bootstrap.Modal(document.getElementById('modalTambah')).show();
@@ -662,8 +779,8 @@
             const status = document.getElementById('filterStatus').value;
 
             const filtered = assets.filter(a => {
-                const matchSearch = a.name.toLowerCase().includes(search) || 
-                                    a.code.toLowerCase().includes(search) || 
+                const matchSearch = (a.name && a.name.toLowerCase().includes(search)) || 
+                                    (a.code && a.code.toLowerCase().includes(search)) || 
                                     (a.serialNumber && a.serialNumber.toLowerCase().includes(search)) ||
                                     (a.user && a.user.toLowerCase().includes(search)) ||
                                     (a.ram && a.ram.toLowerCase().includes(search));
@@ -750,17 +867,26 @@
             XLSX.writeFile(wb, "Data_Aset_IT.xlsx");
         }
 
-        // BARCODE
+        // FUNGSI TAMPILAN BARCODE & SCAN DENGAN DESAIN BARU
         function showBarcodeModal(id) {
             const a = assets.find(x => x.id === id);
+            if (!a) return;
+
             document.getElementById('barcodeAssetName').innerText = a.name;
             document.getElementById('barcodeAssetUser').innerText = `User: ${a.user || '-'} (${a.division || '-'}) | S/N: ${a.serialNumber || '-'}`;
-            document.getElementById('barcodeAssetSpecs').innerText = `Mon: ${a.monitorBrand || '-'} ${a.monitorSize || ''} | RAM: ${a.ram || '-'}`;
             document.getElementById('barcodeAssetCode').innerText = a.code;
 
-            JsBarcode("#barcodeCanvas", a.code, { format: "CODE128", width: 2, height: 50, displayValue: true });
+            // Rincian Spesifikasi untuk Label
+            const specsHtml = `
+                <div><strong>OS:</strong> ${a.osVersion || '-'} | <strong>RAM:</strong> ${a.ram || '-'}</div>
+                <div><strong>SSD/HDD:</strong> ${a.ssd || '-'}${a.hdd ? ' / ' + a.hdd : ''} | <strong>Mon:</strong> ${a.monitorBrand || '-'} ${a.monitorSize || ''}</div>
+            `;
+            document.getElementById('barcodeSpecsContainer').innerHTML = specsHtml;
+
+            JsBarcode("#barcodeCanvas", a.code, { format: "CODE128", width: 2, height: 45, displayValue: true });
             document.getElementById('qrcodeCanvas').innerHTML = '';
-            new QRCode(document.getElementById('qrcodeCanvas'), { text: `${a.code} | ${a.name} | ${a.user}`, width: 90, height: 90 });
+            new QRCode(document.getElementById('qrcodeCanvas'), { text: `${a.code} | ${a.name} | User: ${a.user || '-'}`, width: 100, height: 100 });
+            
             new bootstrap.Modal(document.getElementById('modalBarcode')).show();
         }
 
