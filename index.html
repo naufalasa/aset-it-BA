@@ -35,8 +35,8 @@
     <div id="loginOverlay" class="login-overlay">
         <div class="card card-custom p-4 shadow-lg" style="max-width: 400px; width: 100%;">
             <div class="text-center mb-4">
-                <i class="bi bi-laptop-fill text-primary display-4"></i>
-                <h4 class="fw-bold mt-2">IT Asset BA</h4>
+                <img src="https://bumi-aksara.annarindo.com/uploads/46a0f7_7b1dd49fa1b4471dac_f66e9edd7b.png" alt="Logo Bumi Aksara Group" style="height: 60px; width: auto;">
+                <h4 class="fw-bold mt-2">Management Asset IT BA</h4>
                 <p class="text-muted small">Silakan login untuk mengakses sistem</p>
             </div>
             <form onsubmit="handleLogin(event)">
@@ -56,10 +56,10 @@
     <!-- MAIN APP -->
     <div id="appContent" style="display: none;">
         <!-- Navbar -->
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
+        <nav class="navbar navbar-expand-lg navbar-white bg-white mb-4 shadow-sm">
             <div class="container-fluid px-4">
                 <a class="navbar-brand d-flex align-items-center gap-2" href="#">
-                    <i class="bi bi-laptop-fill text-primary fs-3"></i>
+                    <img src="https://media.licdn.com/dms/image/v2/C560BAQFbq82wvFz2og/company-logo_200_200/company-logo_200_200/0/1630670816626?e=2147483647&v=beta&t=islmMNoj5aatuVpFz45thEhMMsiAEfaO51gn_l91k7g" alt="Logo Bumi Aksara Group" style="height: 60px; width: auto;">
                     <span class="fw-bold">IT Asset Management</span>
                     <span class="badge bg-success ms-2 rounded-pill"><i class="bi bi-cloud-check-fill me-1"></i>Cloud Synced</span>
                 </a>
@@ -464,10 +464,31 @@
         // SYNC USER DARI FIREBASE CLOUD
         db.ref('app_users').on('value', (snapshot) => {
             const data = snapshot.val();
-            if (data && Array.isArray(data)) {
+            if (Array.isArray(data)) {
                 appUsers = data;
+            } else if (data && typeof data === 'object') {
+                // Mendukung data Firebase berbentuk array maupun object.
+                appUsers = Object.values(data).filter(u => u && typeof u === 'object');
+            } else if (data === null) {
+                appUsers = [...defaultUsers];
+                db.ref('app_users').set(appUsers).catch(error => {
+                    console.error('Gagal membuat data user awal:', error);
+                });
             } else {
-                db.ref('app_users').set(defaultUsers);
+                appUsers = [...defaultUsers];
+            }
+
+            // Segarkan data sesi agar perubahan role/user langsung terbaca.
+            if (currentUser) {
+                const freshUser = appUsers.find(u => u.username === currentUser.username);
+                if (freshUser) {
+                    currentUser = freshUser;
+                    sessionStorage.setItem('it_current_user', JSON.stringify(freshUser));
+                } else {
+                    currentUser = null;
+                    sessionStorage.removeItem('it_current_user');
+                    checkAuth();
+                }
             }
             renderUserList();
         });
@@ -494,6 +515,10 @@
                 }
                 renderTable(assets);
                 updateDashboard();
+                // Penting: render ulang daftar user setelah login.
+                // Saat halaman pertama dibuka, currentUser masih null sehingga
+                // tombol hapus belum boleh ditampilkan.
+                renderUserList();
             } else {
                 document.getElementById('loginOverlay').style.display = 'flex';
                 document.getElementById('appContent').style.display = 'none';
@@ -523,15 +548,30 @@
 
         function renderUserList() {
             const list = document.getElementById('userListGroup');
-            if(!list) return;
+            if (!list) return;
             list.innerHTML = '';
+
             appUsers.forEach(u => {
+                if (!u || !u.username) return;
                 const li = document.createElement('li');
                 li.className = 'list-group-item d-flex justify-content-between align-items-center';
-                li.innerHTML = `
-                    <div><b>${u.username}</b> <span class="badge bg-info ms-1">${u.role}</span></div>
-                    ${u.username !== 'naufal' && currentUser && currentUser.role === 'admin' ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u.username}')"><i class="bi bi-trash"></i></button>` : ''}
-                `;
+
+                const userInfo = document.createElement('div');
+                userInfo.innerHTML = `<b></b> <span class="badge bg-info ms-1"></span>`;
+                userInfo.querySelector('b').textContent = u.username;
+                userInfo.querySelector('span').textContent = u.role || 'user';
+                li.appendChild(userInfo);
+
+                // Hanya admin yang dapat menghapus; akun admin utama dilindungi.
+                if (currentUser && currentUser.role === 'admin' && u.username !== 'naufal') {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'btn btn-sm btn-outline-danger';
+                    button.title = 'Hapus user';
+                    button.innerHTML = '<i class="bi bi-trash"></i>';
+                    button.addEventListener('click', () => deleteUser(u.username));
+                    li.appendChild(button);
+                }
                 list.appendChild(li);
             });
         }
@@ -552,10 +592,45 @@
             alert('User berhasil ditambahkan ke Cloud Database!');
         }
 
-        function deleteUser(username) {
-            if(confirm(`Hapus akun ${username}?`)) {
-                appUsers = appUsers.filter(u => u.username !== username);
-                db.ref('app_users').set(appUsers);
+        async function deleteUser(username) {
+            // Pemeriksaan hak akses dilakukan lagi saat tombol ditekan.
+            if (!currentUser || currentUser.role !== 'admin') {
+                alert('Hanya admin yang dapat menghapus user!');
+                return;
+            }
+
+            if (username === 'naufal') {
+                alert('Akun admin utama tidak boleh dihapus!');
+                return;
+            }
+
+            if (!confirm(`Apakah Anda yakin ingin menghapus akun ${username}?`)) return;
+
+            try {
+                const userRef = db.ref('app_users');
+                const snapshot = await userRef.once('value');
+                const data = snapshot.val();
+                let users = [];
+
+                if (Array.isArray(data)) {
+                    users = data;
+                } else if (data && typeof data === 'object') {
+                    users = Object.values(data).filter(u => u && typeof u === 'object');
+                }
+
+                const updatedUsers = users.filter(u => u && u.username !== username);
+                if (updatedUsers.length === users.length) {
+                    alert('User tidak ditemukan di database.');
+                    return;
+                }
+
+                await userRef.set(updatedUsers);
+                appUsers = updatedUsers;
+                renderUserList();
+                alert(`Akun ${username} berhasil dihapus.`);
+            } catch (error) {
+                console.error('Gagal menghapus user:', error);
+                alert('Gagal menghapus user dari Firebase. Periksa koneksi dan Firebase Database Rules. Detail: ' + error.message);
             }
         }
 
