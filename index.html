@@ -3,37 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Pengelolaan Aset IT</title>
-    <!-- Bootstrap CSS -->
+    <title>Sistem Management Aset IT</title>
+    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- SheetJS untuk Ekspor & Import Excel -->
+    <!-- SheetJS (Excel) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.min.js"></script>
-    <!-- JsBarcode & QRCode -->
+    <!-- JsBarcode & QRCode.js -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <!-- Firebase SDK (v9 Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
     <style>
         body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .card-custom { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .bg-gradient-primary { background: linear-gradient(45deg, #0d6efd, #0dcaf0); color: white; }
         .table-responsive { border-radius: 8px; overflow: hidden; }
-        .barcode-container { background: #fff; padding: 10px; border: 1px dashed #bbb; text-align: center; border-radius: 8px; }
-        .spec-badge { font-size: 0.75rem; background-color: #e9ecef; color: #495057; border-radius: 4px; padding: 3px 6px; display: inline-block; margin-top: 3px; }
+        .barcode-container { background: #fff; padding: 15px; border: 1px dashed #ccc; text-align: center; }
+        .spec-badge { font-size: 0.75rem; background-color: rgba(255,255,255,0.7); color: #212529; border-radius: 4px; padding: 3px 6px; display: inline-block; margin-top: 3px; border: 1px solid rgba(0,0,0,0.08); }
         .login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1a1e21; z-index: 9999; display: flex; align-items: center; justify-content: center; }
-        
-        /* Merapikan Tombol Aksi */
         .action-btns { display: flex; gap: 4px; justify-content: center; align-items: center; flex-wrap: nowrap; }
-        
-        /* Tag Label Barcode Modern */
-        .asset-tag-card {
-            border: 2px solid #0d6efd;
-            border-radius: 12px;
-            padding: 15px;
-            background: #ffffff;
-            max-width: 420px;
-            margin: 0 auto;
-        }
     </style>
 </head>
 <body>
@@ -43,37 +36,37 @@
         <div class="card card-custom p-4 shadow-lg" style="max-width: 400px; width: 100%;">
             <div class="text-center mb-4">
                 <i class="bi bi-laptop-fill text-primary display-4"></i>
-                <h4 class="fw-bold mt-2">IT Asset BA</h4>
+                <h4 class="fw-bold mt-2">IT Asset Hub</h4>
                 <p class="text-muted small">Silakan login untuk mengakses sistem</p>
             </div>
             <form onsubmit="handleLogin(event)">
                 <div class="mb-3">
                     <label class="form-label">Username</label>
-                    <input type="text" id="loginUsername" class="form-control" required placeholder="Masukan Username">
+                    <input type="text" id="loginUsername" class="form-control" required placeholder="Masukkan Username">
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Password</label>
-                    <input type="password" id="loginPassword" class="form-control" required placeholder="Masukan Pasword">
+                    <input type="password" id="loginPassword" class="form-control" required placeholder="Masukkan Password">
                 </div>
                 <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Login</button>
             </form>
         </div>
     </div>
 
-    <!-- MAIN APP CONTROLS -->
+    <!-- MAIN APP -->
     <div id="appContent" style="display: none;">
-        <!-- Navbar Header -->
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <!-- Navbar -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
             <div class="container-fluid px-4">
                 <a class="navbar-brand d-flex align-items-center gap-2" href="#">
                     <i class="bi bi-laptop-fill text-primary fs-3"></i>
                     <span class="fw-bold">IT Asset Management</span>
+                    <span class="badge bg-success ms-2 rounded-pill"><i class="bi bi-cloud-check-fill me-1"></i>Cloud Synced</span>
                 </a>
                 <div class="d-flex align-items-center gap-2">
                     <span class="badge bg-secondary me-2 p-2" id="userRoleBadge">Role: -</span>
                     
-                    <!-- Fitur Khusus Admin -->
-                    <button class="btn btn-warning btn-sm admin-only" data-bs-toggle="modal" data-bs-target="#modalUsers">
+                    <button class="btn btn-warning btn-sm admin-only fw-bold" data-bs-toggle="modal" data-bs-target="#modalUsers">
                         <i class="bi bi-people-fill me-1"></i> Kelola User
                     </button>
                     <button class="btn btn-outline-danger btn-sm admin-only" onclick="clearAllData()">
@@ -82,11 +75,9 @@
                     <button class="btn btn-outline-success btn-sm admin-only" data-bs-toggle="modal" data-bs-target="#modalImport">
                         <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i> Import Excel
                     </button>
-                    <button class="btn btn-primary btn-sm admin-only" data-bs-toggle="modal" data-bs-target="#modalTambah">
+                    <button class="btn btn-primary btn-sm admin-only fw-bold" data-bs-toggle="modal" data-bs-target="#modalTambah">
                         <i class="bi bi-plus-circle me-1"></i> Tambah Aset
                     </button>
-
-                    <!-- Fitur Publik (User & Admin) -->
                     <button class="btn btn-success btn-sm" onclick="exportToExcel()">
                         <i class="bi bi-file-earmark-excel-fill me-1"></i> Ekspor Excel
                     </button>
@@ -98,16 +89,16 @@
         </nav>
 
         <div class="container-fluid px-4">
-            <!-- Dashboard Stat Cards -->
+            <!-- Stat Cards -->
             <div class="row g-3 mb-4">
                 <div class="col-md-3">
                     <div class="card card-custom p-3 bg-gradient-primary">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <h6 class="mb-0 text-white-50">Total Aset</h6>
-                                <h2 class="mb-0 fw-bold" id="totalAsetCount">0</h2>
+                                <h2 class="mb-0 fw-bold text-white" id="totalAsetCount">0</h2>
                             </div>
-                            <i class="bi bi-box-seam fs-1 opacity-50"></i>
+                            <i class="bi bi-box-seam fs-1 opacity-50 text-white"></i>
                         </div>
                     </div>
                 </div>
@@ -115,7 +106,7 @@
                     <div class="card card-custom p-3 border-start border-success border-4">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 class="mb-0 text-muted">Aset Aktif</h6>
+                                <h6 class="mb-0 text-muted">Aset Aktif / Normal</h6>
                                 <h2 class="mb-0 fw-bold text-success" id="aktifCount">0</h2>
                             </div>
                             <i class="bi bi-check-circle fs-1 text-success opacity-50"></i>
@@ -126,7 +117,7 @@
                     <div class="card card-custom p-3 border-start border-warning border-4">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 class="mb-0 text-muted">Perbaikan / Perawatan</h6>
+                                <h6 class="mb-0 text-muted">Perbaikan / Rusak</h6>
                                 <h2 class="mb-0 fw-bold text-warning" id="perbaikanCount">0</h2>
                             </div>
                             <i class="bi bi-tools fs-1 text-warning opacity-50"></i>
@@ -137,7 +128,7 @@
                     <div class="card card-custom p-3 border-start border-danger border-4">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 class="mb-0 text-muted">Total Nilai Saat Ini</h6>
+                                <h6 class="mb-0 text-muted">Total Nilai Sisa Aset</h6>
                                 <h4 class="mb-0 fw-bold text-danger" id="totalNilaiAset">Rp 0</h4>
                             </div>
                             <i class="bi bi-currency-dollar fs-1 text-danger opacity-50"></i>
@@ -146,13 +137,13 @@
                 </div>
             </div>
 
-            <!-- Filter & Search Section -->
-            <div class="card card-custom mb-4 p-3">
+            <!-- Filters -->
+            <div class="card card-custom mb-4 p-3 border-top border-primary border-3">
                 <div class="row g-3">
                     <div class="col-md-4">
                         <div class="input-group">
                             <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                            <input type="text" id="searchInput" class="form-control" placeholder="Cari Nama, S/N, User, Specs, Kode..." onkeyup="filterData()">
+                            <input type="text" id="searchInput" class="form-control" placeholder="Cari Nama Aset, User, Kode, Hardware..." onkeyup="filterData()">
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -183,20 +174,19 @@
                 </div>
             </div>
 
-            <!-- Main Data Table -->
-            <div class="card card-custom p-3 mb-4">
+            <!-- Main Table (S/N disembunyikan agar bersih) -->
+            <div class="card card-custom p-0 mb-4 shadow-sm">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0" id="assetTable">
-                        <thead class="table-light">
+                        <thead class="table-dark">
                             <tr>
-                                <th>Kode</th>
+                                <th class="ps-3">Kode</th>
                                 <th>Nama Barang</th>
                                 <th>Pengguna & Divisi</th>
                                 <th>Spesifikasi Hardware</th>
-                                <th>S/N (Serial)</th>
                                 <th>Status</th>
                                 <th>Nilai Sisa</th>
-                                <th class="text-center" style="min-width: 150px;">Aksi</th>
+                                <th class="text-center pe-3" style="min-width: 140px;">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody"></tbody>
@@ -206,17 +196,15 @@
         </div>
     </div>
 
-    <!-- MODAL VIEW DETAIL ASET (FITUR BARU) -->
+    <!-- MODAL VIEW DETAIL ASET -->
     <div class="modal fade" id="modalView" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-laptop me-2"></i>Detail Spesifikasi & Informasi Aset</h5>
+                    <h5 class="modal-title fw-bold"><i class="bi bi-laptop me-2"></i>Detail Rincian Aset</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body p-4" id="viewModalContent">
-                    <!-- Diisi lewat JS -->
-                </div>
+                <div class="modal-body p-4" id="viewModalContent"></div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
                 </div>
@@ -224,11 +212,27 @@
         </div>
     </div>
 
-    <!-- Modal Tambah / Edit Aset -->
+    <!-- MODAL HASIL SCAN MOBILE (SCAN BARCODE/QR CAMERA) -->
+    <div class="modal fade" id="modalPublicScan" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-qr-code-scan text-primary me-2"></i>Informasi Aset IT</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-center" id="publicScanModalContent"></div>
+                <div class="modal-footer justify-content-center bg-light">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Tambah / Edit -->
     <div class="modal fade" id="modalTambah" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
+                <div class="modal-header bg-light">
                     <h5 class="modal-title fw-bold" id="modalTitle">Tambah Aset Baru</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -268,7 +272,7 @@
                         </div>
 
                         <h6 class="fw-bold text-primary mb-3"><i class="bi bi-cpu me-1"></i> Spesifikasi Hardware & Monitor</h6>
-                        <div class="row g-3 mb-4 p-3 bg-light rounded">
+                        <div class="row g-3 mb-4 p-3 bg-light rounded border">
                             <div class="col-md-4">
                                 <label class="form-label">Versi Windows / OS</label>
                                 <input type="text" id="osVersion" class="form-control" placeholder="Ketik Disini">
@@ -302,16 +306,16 @@
                         <h6 class="fw-bold text-primary mb-3"><i class="bi bi-card-checklist me-1"></i> Kondisi & Nilai Aset</h6>
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label">Status</label>
-                                <select id="status" class="form-select" required>
-                                    <option value="Digunakan">Digunakan</option>
-                                    <option value="Tersedia">Tersedia (Gudang)</option>
-                                    <option value="Perbaikan">Dalam Perbaikan</option>
-                                    <option value="Rusak">Rusak Total</option>
+                                <label class="form-label">Status Monitoring</label>
+                                <select id="status" class="form-select fw-bold" required>
+                                    <option value="Digunakan">Digunakan (Hijau)</option>
+                                    <option value="Tersedia">Tersedia (Biru)</option>
+                                    <option value="Perbaikan">Perbaikan (Kuning)</option>
+                                    <option value="Rusak">Rusak Total (Merah)</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Kondisi</label>
+                                <label class="form-label">Kondisi Fisik</label>
                                 <select id="condition" class="form-select" required>
                                     <option value="Baik">Baik</option>
                                     <option value="Normal">Normal</option>
@@ -320,7 +324,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Harga Beli (Rp)</label>
-                                <input type="number" id="price" class="form-control" placeholder="Ketik Disini">
+                                <input type="number" id="price" class="form-control" placeholder="Harga Beli">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Tanggal Pembelian</label>
@@ -332,24 +336,24 @@
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
+                    <div class="modal-footer bg-light">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary">Simpan Data</button>
+                        <button type="submit" class="btn btn-primary fw-bold">Simpan Data</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Modal Kelola User (Khusus Admin) -->
+    <!-- Modal Kelola User (Cloud Realtime) -->
     <div class="modal fade" id="modalUsers" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-people me-2"></i>Manajemen User Aplikasi</h5>
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title fw-bold text-dark"><i class="bi bi-people me-2"></i>Manajemen User Cloud</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <form id="formAddUser" onsubmit="addUser(event)" class="mb-4">
                         <div class="row g-2">
                             <div class="col-md-4">
@@ -365,11 +369,11 @@
                                 </select>
                             </div>
                             <div class="col-12 mt-2">
-                                <button type="submit" class="btn btn-success btn-sm w-100">+ Tambah Akun</button>
+                                <button type="submit" class="btn btn-success w-100 fw-bold">+ Tambah User Cloud</button>
                             </div>
                         </div>
                     </form>
-                    <h6>Daftar Akun Pengguna:</h6>
+                    <h6 class="fw-bold text-muted">Daftar Akun Terdaftar:</h6>
                     <ul class="list-group" id="userListGroup"></ul>
                 </div>
             </div>
@@ -381,57 +385,46 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-spreadsheet text-success me-2"></i>Import Data Aset via Excel</h5>
+                    <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-spreadsheet text-success me-2"></i>Import Data Excel</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Pilih File Excel:</label>
+                        <label class="form-label fw-bold">Pilih File Excel (.xlsx):</label>
                         <input type="file" id="excelFileInput" class="form-control" accept=".xlsx, .xls, .csv">
                     </div>
-                    <div class="alert alert-info p-2 small">
-                        <i class="bi bi-info-circle me-1"></i> <a href="#" onclick="downloadTemplate()" class="fw-bold text-decoration-none">Download Format Template Excel Terbaru</a>
+                    <div class="alert alert-info p-2 small text-center">
+                        <a href="#" onclick="downloadTemplate()" class="fw-bold text-decoration-none"><i class="bi bi-download me-1"></i> Download Format Template Excel</a>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-success" onclick="processExcelImport()">Proses Import</button>
+                    <button type="button" class="btn btn-success fw-bold" onclick="processExcelImport()">Proses Import</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MODAL BARCODE & SCAN DENGAN DESAIN BARU -->
+    <!-- Modal Barcode & QR -->
     <div class="modal fade" id="modalBarcode" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-qr-code-scan text-primary me-2"></i>Label Scan & Barcode Aset</h5>
+                    <h5 class="modal-title fw-bold">Label Barcode & QR Code</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body text-center p-4" id="printableArea">
-                    <div class="asset-tag-card">
-                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
-                            <span class="fw-bold text-primary"><i class="bi bi-laptop-fill me-1"></i> IT ASSET BA</span>
-                            <span class="badge bg-dark" id="barcodeAssetCode"></span>
-                        </div>
+                    <div style="border: 2px dashed #0d6efd; border-radius: 12px; padding: 15px; background: #fff; max-width: 380px; margin: 0 auto;">
                         <h5 id="barcodeAssetName" class="fw-bold text-dark mb-1"></h5>
                         <p id="barcodeAssetUser" class="text-muted small mb-2"></p>
-                        
-                        <!-- Rincian Spesifikasi untuk Tampilan Scan -->
-                        <div id="barcodeSpecsContainer" class="p-2 bg-light rounded text-start small mb-3 border"></div>
-
-                        <div class="barcode-container mb-3">
-                            <svg id="barcodeCanvas"></svg>
-                        </div>
-                        <div class="d-flex justify-content-center mb-1">
-                            <div id="qrcodeCanvas"></div>
-                        </div>
+                        <div class="barcode-container mb-3 border-0 p-0"><svg id="barcodeCanvas"></svg></div>
+                        <div class="d-flex justify-content-center mb-2"><div id="qrcodeCanvas"></div></div>
+                        <span class="badge bg-dark" id="barcodeAssetCode"></span>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                    <button type="button" class="btn btn-primary" onclick="printBarcode()"><i class="bi bi-printer me-1"></i> Cetak Label</button>
+                    <button type="button" class="btn btn-primary fw-bold" onclick="printBarcode()"><i class="bi bi-printer me-1"></i> Cetak Label</button>
                 </div>
             </div>
         </div>
@@ -439,19 +432,55 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // DB Users Default
+        // ==========================================
+        // GANTI DATA FIREBASE CONFIG DI BAWAH INI
+        // DENGAN DATA FIREBASE KAMU SENDIRI
+        // ==========================================
+  const firebaseConfig = {
+    apiKey: "AIzaSyCjxSPRrLugOJ9e746svQmMUX_JGUKQB4s",
+    authDomain: "aset-management-e6b00.firebaseapp.com",
+    databaseURL: "https://aset-management-e6b00-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "aset-management-e6b00",
+    storageBucket: "aset-management-e6b00.firebasestorage.app",
+    messagingSenderId: "374036034423",
+    appId: "1:374036034423:web:93c3cf5ed8c2082ceba772",
+    measurementId: "G-LTEM61BJZ0"
+  };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
+
         let defaultUsers = [
             { username: 'naufal', password: '12', role: 'admin' },
             { username: 'user', password: 'user', role: 'user' }
         ];
-        let appUsers = JSON.parse(localStorage.getItem('it_app_users')) || defaultUsers;
+        
+        let appUsers = defaultUsers;
         let currentUser = JSON.parse(sessionStorage.getItem('it_current_user')) || null;
+        let assets = [];
 
-        // DB Assets
-        let initialAssets = [];
-        let assets = JSON.parse(localStorage.getItem('it_assets_data')) || initialAssets;
+        // SYNC USER DARI FIREBASE CLOUD
+        db.ref('app_users').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data && Array.isArray(data)) {
+                appUsers = data;
+            } else {
+                db.ref('app_users').set(defaultUsers);
+            }
+            renderUserList();
+        });
 
-        // SISTEM AUTH & LOGIN
+        // SYNC DATA ASET DARI FIREBASE CLOUD
+        db.ref('it_assets').on('value', (snapshot) => {
+            const data = snapshot.val();
+            assets = data && Array.isArray(data) ? data : [];
+            renderTable(assets);
+            updateDashboard();
+            populateDivisiFilter();
+        });
+
         function checkAuth() {
             if (currentUser) {
                 document.getElementById('loginOverlay').style.display = 'none';
@@ -465,8 +494,6 @@
                 }
                 renderTable(assets);
                 updateDashboard();
-                populateDivisiFilter();
-                renderUserList();
             } else {
                 document.getElementById('loginOverlay').style.display = 'flex';
                 document.getElementById('appContent').style.display = 'none';
@@ -494,16 +521,16 @@
             checkAuth();
         }
 
-        // MANAJEMEN USER (ADMIN ONLY)
         function renderUserList() {
             const list = document.getElementById('userListGroup');
+            if(!list) return;
             list.innerHTML = '';
             appUsers.forEach(u => {
                 const li = document.createElement('li');
                 li.className = 'list-group-item d-flex justify-content-between align-items-center';
                 li.innerHTML = `
                     <div><b>${u.username}</b> <span class="badge bg-info ms-1">${u.role}</span></div>
-                    ${u.username !== 'admin' ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u.username}')"><i class="bi bi-trash"></i></button>` : ''}
+                    ${u.username !== 'naufal' && currentUser && currentUser.role === 'admin' ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u.username}')"><i class="bi bi-trash"></i></button>` : ''}
                 `;
                 list.appendChild(li);
             });
@@ -516,40 +543,33 @@
             const role = document.getElementById('newRole').value;
 
             if(appUsers.some(u => u.username === username)) {
-                alert('Username sudah ada!');
+                alert('Username sudah ada di Cloud Database!');
                 return;
             }
             appUsers.push({ username, password, role });
-            localStorage.setItem('it_app_users', JSON.stringify(appUsers));
-            renderUserList();
+            db.ref('app_users').set(appUsers);
             document.getElementById('formAddUser').reset();
+            alert('User berhasil ditambahkan ke Cloud Database!');
         }
 
         function deleteUser(username) {
             if(confirm(`Hapus akun ${username}?`)) {
                 appUsers = appUsers.filter(u => u.username !== username);
-                localStorage.setItem('it_app_users', JSON.stringify(appUsers));
-                renderUserList();
+                db.ref('app_users').set(appUsers);
             }
         }
 
-        // DATA ASET LOGIC
-        function saveToLocalStorage() {
-            localStorage.setItem('it_assets_data', JSON.stringify(assets));
-            renderTable(assets);
-            updateDashboard();
-            populateDivisiFilter();
+        function saveToCloud() {
+            db.ref('it_assets').set(assets);
         }
 
         function clearAllData() {
-            if (confirm('Apakah Anda yakin ingin MENGHAPUS SEMUA DATA aset?')) {
-                localStorage.removeItem('it_assets_data');
+            if (confirm('Apakah Anda yakin ingin MENGHAPUS SEMUA DATA aset di Cloud?')) {
                 assets = [];
-                saveToLocalStorage();
+                saveToCloud();
             }
         }
 
-        // PERBAIKAN BUG RpNaN
         function calculateDepreciation(price, buyDate, usefulLifeYears) {
             const parsedPrice = parseFloat(price) || 0;
             if (!parsedPrice) return 0;
@@ -573,6 +593,7 @@
 
         function populateDivisiFilter() {
             const select = document.getElementById('filterDivisi');
+            if(!select) return;
             const currentVal = select.value;
             const divisions = [...new Set(assets.map(a => a.division).filter(Boolean))];
             select.innerHTML = '<option value="">Semua Divisi</option>';
@@ -582,20 +603,33 @@
             select.value = currentVal;
         }
 
+        // RENDER TABEL DENGAN WARNA BARIS MONITORING
         function renderTable(data) {
             const tbody = document.getElementById('tableBody');
+            if(!tbody) return;
             tbody.innerHTML = '';
 
             if(data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">Belum ada data aset.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">Belum ada data aset di Cloud.</td></tr>`;
                 return;
             }
 
             data.forEach(asset => {
                 const currentValue = calculateDepreciation(asset.price, asset.buyDate, asset.usefulLife);
-                const badgeStatus = asset.status === 'Digunakan' ? 'bg-success' : 
-                                   asset.status === 'Tersedia' ? 'bg-info' : 
-                                   asset.status === 'Perbaikan' ? 'bg-warning text-dark' : 'bg-danger';
+                
+                // PEWARNAAN BARIS DAN BADGE
+                let rowStyle = '';
+                let badgeStatus = 'bg-success';
+                
+                if (asset.status === 'Rusak') {
+                    rowStyle = 'table-danger'; // Warna Baris Merah
+                    badgeStatus = 'bg-danger';
+                } else if (asset.status === 'Perbaikan') {
+                    rowStyle = 'table-warning'; // Warna Baris Kuning
+                    badgeStatus = 'bg-warning text-dark';
+                } else if (asset.status === 'Tersedia') {
+                    badgeStatus = 'bg-info text-dark';
+                }
 
                 const osText = asset.osVersion ? `OS: ${asset.osVersion}` : '';
                 const ramText = asset.ram ? `RAM: ${asset.ram}` : '';
@@ -608,17 +642,18 @@
                 const specs = [osText, moboText, ramText, ssdText, hddText, `${monBrandText} ${monSizeText}`.trim()].filter(Boolean).join(' | ');
 
                 const tr = document.createElement('tr');
+                if(rowStyle) tr.className = rowStyle;
+
                 tr.innerHTML = `
-                    <td class="fw-bold text-primary">${asset.code}</td>
+                    <td class="ps-3 fw-bold text-primary">${asset.code}</td>
                     <td><div class="fw-bold">${asset.name}</div><span class="badge bg-light text-dark border">${asset.category}</span></td>
                     <td><div class="fw-bold">${asset.user || '-'}</div><small class="text-muted">Divisi: ${asset.division || '-'}</small></td>
                     <td>${specs ? `<span class="spec-badge"><i class="bi bi-cpu me-1"></i>${specs}</span>` : '<span class="text-muted small">-</span>'}</td>
-                    <td><code>${asset.serialNumber || '-'}</code></td>
                     <td><span class="badge ${badgeStatus}">${asset.status}</span></td>
-                    <td>${formatRupiah(currentValue)}</td>
-                    <td class="text-center">
+                    <td class="fw-semibold text-dark">${formatRupiah(currentValue)}</td>
+                    <td class="text-center pe-3">
                         <div class="action-btns">
-                            <button class="btn btn-sm btn-outline-info" onclick="viewAsset('${asset.id}')" title="Lihat Detail Clear"><i class="bi bi-eye-fill"></i></button>
+                            <button class="btn btn-sm btn-outline-info" onclick="viewAsset('${asset.id}')" title="Detail Spek"><i class="bi bi-eye-fill"></i></button>
                             <button class="btn btn-sm btn-outline-dark" onclick="showBarcodeModal('${asset.id}')" title="Barcode & QR"><i class="bi bi-qr-code"></i></button>
                             ${currentUser && currentUser.role === 'admin' ? `
                                 <button class="btn btn-sm btn-outline-primary" onclick="editAsset('${asset.id}')" title="Edit"><i class="bi bi-pencil-fill"></i></button>
@@ -631,7 +666,6 @@
             });
         }
 
-        // FUNGSI UNTUK VIEW DETAIL ASET (BESAR & CLEAR)
         function viewAsset(id) {
             const a = assets.find(x => x.id === id);
             if (!a) return;
@@ -655,18 +689,18 @@
                     </div>
 
                     <div class="col-md-6">
-                        <div class="p-3 bg-light rounded h-100">
+                        <div class="p-3 bg-light rounded h-100 border">
                             <h6 class="fw-bold text-primary mb-2"><i class="bi bi-person-badge me-1"></i> Pengguna & Divisi</h6>
-                            <p class="mb-1"><strong>Nama User:</strong> ${a.user || '-'}</p>
+                            <p class="mb-1"><strong>Pengguna:</strong> ${a.user || '-'}</p>
                             <p class="mb-1"><strong>Divisi:</strong> ${a.division || '-'}</p>
                             <p class="mb-0"><strong>Serial Number (S/N):</strong> <code>${a.serialNumber || '-'}</code></p>
                         </div>
                     </div>
 
                     <div class="col-md-6">
-                        <div class="p-3 bg-light rounded h-100">
-                            <h6 class="fw-bold text-primary mb-2"><i class="bi bi-cash-stack me-1"></i> Kondisi & Finansial</h6>
-                            <p class="mb-1"><strong>Kondisi:</strong> ${a.condition || '-'}</p>
+                        <div class="p-3 bg-light rounded h-100 border">
+                            <h6 class="fw-bold text-primary mb-2"><i class="bi bi-cash-stack me-1"></i> Finansial & Kondisi</h6>
+                            <p class="mb-1"><strong>Kondisi Fisik:</strong> ${a.condition || '-'}</p>
                             <p class="mb-1"><strong>Harga Beli:</strong> ${formatRupiah(a.price)}</p>
                             <p class="mb-1"><strong>Tanggal Pembelian:</strong> ${a.buyDate || '-'}</p>
                             <p class="mb-0"><strong>Nilai Sisa Saat Ini:</strong> <span class="fw-bold text-success">${formatRupiah(currentValue)}</span></p>
@@ -695,8 +729,8 @@
 
         function updateDashboard() {
             document.getElementById('totalAsetCount').innerText = assets.length;
-            document.getElementById('aktifCount').innerText = assets.filter(a => a.status === 'Digunakan').length;
-            document.getElementById('perbaikanCount').innerText = assets.filter(a => a.status === 'Perbaikan').length;
+            document.getElementById('aktifCount').innerText = assets.filter(a => a.status === 'Digunakan' || a.status === 'Tersedia').length;
+            document.getElementById('perbaikanCount').innerText = assets.filter(a => a.status === 'Perbaikan' || a.status === 'Rusak').length;
             const total = assets.reduce((sum, a) => sum + calculateDepreciation(a.price, a.buyDate, a.usefulLife), 0);
             document.getElementById('totalNilaiAset').innerText = formatRupiah(total);
         }
@@ -735,7 +769,7 @@
                 });
             }
 
-            saveToLocalStorage();
+            saveToCloud();
             bootstrap.Modal.getInstance(document.getElementById('modalTambah')).hide();
             document.getElementById('formAset').reset();
         }
@@ -745,7 +779,7 @@
             document.getElementById('assetId').value = a.id;
             document.getElementById('name').value = a.name;
             document.getElementById('category').value = a.category;
-            document.getElementById('serialNumber').value = a.serialNumber;
+            document.getElementById('serialNumber').value = a.serialNumber || '';
             document.getElementById('user').value = a.user || '';
             document.getElementById('division').value = a.division || '';
             document.getElementById('osVersion').value = a.osVersion || '';
@@ -768,7 +802,7 @@
         function deleteAsset(id) {
             if (confirm('Yakin ingin menghapus aset ini?')) {
                 assets = assets.filter(a => a.id !== id);
-                saveToLocalStorage();
+                saveToCloud();
             }
         }
 
@@ -792,7 +826,6 @@
             renderTable(filtered);
         }
 
-        // IMPORT & EXPORT EXCEL
         function processExcelImport() {
             const fileInput = document.getElementById('excelFileInput');
             const file = fileInput.files[0];
@@ -832,9 +865,9 @@
                     }
                 });
 
-                saveToLocalStorage();
+                saveToCloud();
                 bootstrap.Modal.getInstance(document.getElementById('modalImport')).hide();
-                alert(`Berhasil mengimpor ${count} data!`);
+                alert(`Berhasil mengimpor ${count} data ke Cloud!`);
             };
             reader.readAsArrayBuffer(file);
         }
@@ -867,7 +900,7 @@
             XLSX.writeFile(wb, "Data_Aset_IT.xlsx");
         }
 
-        // FUNGSI TAMPILAN BARCODE & SCAN DENGAN DESAIN BARU
+        // FUNGSI SCAN QR GENERATOR UNTUK MOBILE
         function showBarcodeModal(id) {
             const a = assets.find(x => x.id === id);
             if (!a) return;
@@ -876,16 +909,34 @@
             document.getElementById('barcodeAssetUser').innerText = `User: ${a.user || '-'} (${a.division || '-'}) | S/N: ${a.serialNumber || '-'}`;
             document.getElementById('barcodeAssetCode').innerText = a.code;
 
-            // Rincian Spesifikasi untuk Label
-            const specsHtml = `
-                <div><strong>OS:</strong> ${a.osVersion || '-'} | <strong>RAM:</strong> ${a.ram || '-'}</div>
-                <div><strong>SSD/HDD:</strong> ${a.ssd || '-'}${a.hdd ? ' / ' + a.hdd : ''} | <strong>Mon:</strong> ${a.monitorBrand || '-'} ${a.monitorSize || ''}</div>
-            `;
-            document.getElementById('barcodeSpecsContainer').innerHTML = specsHtml;
-
             JsBarcode("#barcodeCanvas", a.code, { format: "CODE128", width: 2, height: 45, displayValue: true });
+
+            const baseUrl = window.location.href.split('?')[0];
+            const queryParams = new URLSearchParams({
+                code: a.code || '',
+                name: a.name || '',
+                cat: a.category || '',
+                user: a.user || '',
+                div: a.division || '',
+                sn: a.serialNumber || '',
+                os: a.osVersion || '',
+                mobo: a.motherboard || '',
+                ram: a.ram || '',
+                ssd: a.ssd || '',
+                hdd: a.hdd || '',
+                mon: `${a.monitorBrand || ''} ${a.monitorSize || ''}`.trim(),
+                status: a.status || '',
+                cond: a.condition || ''
+            });
+
+            const scanUrl = `${baseUrl}?${queryParams.toString()}`;
+
             document.getElementById('qrcodeCanvas').innerHTML = '';
-            new QRCode(document.getElementById('qrcodeCanvas'), { text: `${a.code} | ${a.name} | User: ${a.user || '-'}`, width: 100, height: 100 });
+            new QRCode(document.getElementById('qrcodeCanvas'), {
+                text: scanUrl,
+                width: 120,
+                height: 120
+            });
             
             new bootstrap.Modal(document.getElementById('modalBarcode')).show();
         }
@@ -899,8 +950,85 @@
             location.reload();
         }
 
-        // Inisialisasi Auth saat pertama dibuka
+        // DETEKSI OTOMATIS JIKA WEBSITE DIBUKA DARI SCAN QR HP
+        function checkScanUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+
+            if (code) {
+                let a = assets.find(x => x.code === code);
+                if (!a) {
+                    a = {
+                        code: code,
+                        name: urlParams.get('name') || 'Aset IT',
+                        category: urlParams.get('cat') || '-',
+                        user: urlParams.get('user') || '-',
+                        division: urlParams.get('div') || '-',
+                        serialNumber: urlParams.get('sn') || '-',
+                        osVersion: urlParams.get('os') || '-',
+                        motherboard: urlParams.get('mobo') || '-',
+                        ram: urlParams.get('ram') || '-',
+                        ssd: urlParams.get('ssd') || '-',
+                        hdd: urlParams.get('hdd') || '-',
+                        monitorBrand: urlParams.get('mon') || '-',
+                        status: urlParams.get('status') || 'Aktif',
+                        condition: urlParams.get('cond') || 'Baik'
+                    };
+                }
+
+                showPublicScanCard(a);
+            }
+        }
+
+        function showPublicScanCard(a) {
+            const badgeStatus = a.status === 'Digunakan' ? 'bg-success' : 
+                               a.status === 'Tersedia' ? 'bg-info' : 
+                               a.status === 'Perbaikan' ? 'bg-warning text-dark' : 'bg-danger';
+
+            const html = `
+                <div class="mb-3">
+                    <span class="badge bg-primary fs-6 px-3 py-1 mb-2">${a.code}</span>
+                    <h4 class="fw-bold text-dark mb-1">${a.name}</h4>
+                    <span class="badge ${badgeStatus} fs-6">${a.status}</span>
+                    <span class="badge bg-secondary fs-6 ms-1">${a.category || 'Aset'}</span>
+                </div>
+
+                <div class="card bg-light border-0 mb-3 text-start">
+                    <div class="card-body p-3">
+                        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-person-fill me-1"></i> Pengguna & Divisi</h6>
+                        <div class="small">
+                            <div><strong>User:</strong> ${a.user || '-'}</div>
+                            <div><strong>Divisi:</strong> ${a.division || '-'}</div>
+                            <div><strong>Serial Number:</strong> <code>${a.serialNumber || '-'}</code></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 bg-light text-start mb-3">
+                    <div class="card-body p-3">
+                        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-cpu-fill me-1"></i> Spesifikasi Hardware</h6>
+                        <div class="row g-2 small">
+                            <div class="col-6"><strong>OS:</strong> ${a.osVersion || '-'}</div>
+                            <div class="col-6"><strong>Mobo:</strong> ${a.motherboard || '-'}</div>
+                            <div class="col-6"><strong>RAM:</strong> ${a.ram || '-'}</div>
+                            <div class="col-6"><strong>SSD:</strong> ${a.ssd || '-'}</div>
+                            <div class="col-6"><strong>HDD:</strong> ${a.hdd || '-'}</div>
+                            <div class="col-6"><strong>Monitor:</strong> ${a.monitorBrand || '-'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-sm btn-primary w-100" onclick="window.location.href=window.location.pathname">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> Masuk Ke Aplikasi Utama
+                </button>
+            `;
+
+            document.getElementById('publicScanModalContent').innerHTML = html;
+            new bootstrap.Modal(document.getElementById('modalPublicScan')).show();
+        }
+
         checkAuth();
+        checkScanUrl();
     </script>
 </body>
 </html>
